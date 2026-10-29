@@ -1,0 +1,10 @@
+# Core Dependencies for AI Timetable Scheduler
+streamlit>=1.30.0
+pandas>=2.0.0
+pytest>=8.0.0
+openpyxl>=3.1.0
+matplotlib>=3.8.0
+
+# Optional Web Server Extensions
+fastapi>=0.100.0
+uvicorn>=0.25.0

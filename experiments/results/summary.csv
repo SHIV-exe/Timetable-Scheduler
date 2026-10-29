@@ -1,0 +1,13 @@
+Dataset,Method,Success Rate,Avg Time (s),Std Time (s),Avg Work (nodes/iters),Avg Hard Violations,Avg Soft Penalty (valid runs)
+small,BT baseline,10/10,0.04,0.11,6559,0.0,61.1
+small,BT heuristics,10/10,0.02,0.01,58,0.0,64.3
+small,Min-Conflicts,10/10,0.0,0.0,1,0.0,62.8
+small,Simulated Annealing,10/10,1.59,0.11,9621,0.0,2.8
+small,Hill Climbing,10/10,0.38,0.08,2443,0.0,4.3
+small,Hybrid (BT + SA),10/10,1.56,0.12,9643,0.0,2.6
+large,BT baseline,7/10,0.08,0.11,6733,43.2,216.6
+large,BT heuristics,10/10,0.57,0.09,219,0.0,227.0
+large,Min-Conflicts,10/10,0.03,0.0,3,0.0,213.8
+large,Simulated Annealing,10/10,12.69,0.57,31478,0.0,34.7
+large,Hill Climbing,9/10,1.21,0.1,2990,0.1,96.6
+large,Hybrid (BT + SA),10/10,13.43,0.93,31410,0.0,39.9

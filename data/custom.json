@@ -1,0 +1,679 @@
+{
+  "time": {
+    "days": [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri"
+    ],
+    "periods_per_day": 7,
+    "break_periods": [],
+    "lab_block": 2,
+    "period_slots": [
+      {
+        "period": 1,
+        "name": "09:00 AM - 10:00 AM",
+        "start": "09:00",
+        "end": "10:00",
+        "is_lunch": false
+      },
+      {
+        "period": 2,
+        "name": "10:00 AM - 11:00 AM",
+        "start": "10:00",
+        "end": "11:00",
+        "is_lunch": false
+      },
+      {
+        "period": 3,
+        "name": "11:00 AM - 12:00 PM",
+        "start": "11:00",
+        "end": "12:00",
+        "is_lunch": false
+      },
+      {
+        "period": 4,
+        "name": "12:00 PM - 01:00 PM",
+        "start": "12:00",
+        "end": "13:00",
+        "is_lunch": true
+      },
+      {
+        "period": 5,
+        "name": "01:00 PM - 02:00 PM",
+        "start": "13:00",
+        "end": "14:00",
+        "is_lunch": false
+      },
+      {
+        "period": 6,
+        "name": "02:00 PM - 03:00 PM",
+        "start": "14:00",
+        "end": "15:00",
+        "is_lunch": false
+      },
+      {
+        "period": 7,
+        "name": "03:00 PM - 04:00 PM",
+        "start": "15:00",
+        "end": "16:00",
+        "is_lunch": false
+      }
+    ]
+  },
+  "subjects": [
+    {
+      "code": "CS201",
+      "name": "Data Structures",
+      "hours": 4,
+      "type": "theory"
+    },
+    {
+      "code": "CS202",
+      "name": "Algorithms",
+      "hours": 4,
+      "type": "theory"
+    },
+    {
+      "code": "CS203",
+      "name": "Database Systems",
+      "hours": 4,
+      "type": "theory"
+    },
+    {
+      "code": "CS204",
+      "name": "Operating Systems",
+      "hours": 4,
+      "type": "theory"
+    },
+    {
+      "code": "CS201L",
+      "name": "Data Structures Lab",
+      "hours": 2,
+      "type": "lab"
+    },
+    {
+      "code": "CS203L",
+      "name": "Database Lab",
+      "hours": 2,
+      "type": "lab"
+    }
+  ],
+  "rooms": [
+    {
+      "name": "Hall-101",
+      "capacity": 65,
+      "type": "classroom"
+    },
+    {
+      "name": "Hall-102",
+      "capacity": 60,
+      "type": "classroom"
+    },
+    {
+      "name": "Hall-103",
+      "capacity": 60,
+      "type": "classroom"
+    },
+    {
+      "name": "Hall-104",
+      "capacity": 55,
+      "type": "classroom"
+    },
+    {
+      "name": "Hall-105",
+      "capacity": 55,
+      "type": "classroom"
+    },
+    {
+      "name": "Hall-106",
+      "capacity": 50,
+      "type": "classroom"
+    },
+    {
+      "name": "Sys-Lab-A",
+      "capacity": 65,
+      "type": "lab"
+    },
+    {
+      "name": "Data-Lab-B",
+      "capacity": 60,
+      "type": "lab"
+    }
+  ],
+  "teachers": [
+    {
+      "name": "Prof. Donald Knuth",
+      "subjects": [
+        "CS201",
+        "CS201L",
+        "CS202"
+      ],
+      "unavailable": [
+        [
+          "Mon",
+          1
+        ]
+      ],
+      "max_load": 14,
+      "avoid_periods": [
+        1
+      ]
+    },
+    {
+      "name": "Prof. Edsger Dijkstra",
+      "subjects": [
+        "CS202",
+        "CS204"
+      ],
+      "unavailable": [
+        [
+          "Tue",
+          7
+        ]
+      ],
+      "max_load": 14,
+      "avoid_periods": [
+        7
+      ]
+    },
+    {
+      "name": "Dr. Barbara Liskov",
+      "subjects": [
+        "CS201",
+        "CS201L",
+        "CS204"
+      ],
+      "unavailable": [
+        [
+          "Wed",
+          1
+        ]
+      ],
+      "max_load": 14,
+      "avoid_periods": [
+        1
+      ]
+    },
+    {
+      "name": "Dr. Edgar Codd",
+      "subjects": [
+        "CS203",
+        "CS203L"
+      ],
+      "unavailable": [
+        [
+          "Thu",
+          7
+        ]
+      ],
+      "max_load": 14,
+      "avoid_periods": [
+        7
+      ]
+    },
+    {
+      "name": "Dr. Michael Stonebraker",
+      "subjects": [
+        "CS203",
+        "CS203L"
+      ],
+      "unavailable": [
+        [
+          "Fri",
+          1
+        ]
+      ],
+      "max_load": 14,
+      "avoid_periods": [
+        1,
+        2
+      ]
+    },
+    {
+      "name": "Prof. Andrew Tanenbaum",
+      "subjects": [
+        "CS204"
+      ],
+      "unavailable": [
+        [
+          "Mon",
+          7
+        ]
+      ],
+      "max_load": 14,
+      "avoid_periods": [
+        7
+      ]
+    },
+    {
+      "name": "Dr. Grace Hopper",
+      "subjects": [
+        "CS201",
+        "CS201L",
+        "CS203"
+      ],
+      "unavailable": [
+        [
+          "Tue",
+          1
+        ]
+      ],
+      "max_load": 14,
+      "avoid_periods": [
+        1
+      ]
+    },
+    {
+      "name": "Dr. Ken Thompson",
+      "subjects": [
+        "CS204"
+      ],
+      "unavailable": [
+        [
+          "Wed",
+          7
+        ]
+      ],
+      "max_load": 14,
+      "avoid_periods": [
+        7
+      ]
+    },
+    {
+      "name": "Dr. Leslie Lamport",
+      "subjects": [
+        "CS202",
+        "CS204"
+      ],
+      "unavailable": [
+        [
+          "Thu",
+          1
+        ]
+      ],
+      "max_load": 14,
+      "avoid_periods": [
+        2
+      ]
+    },
+    {
+      "name": "Prof. John Hopcroft",
+      "subjects": [
+        "CS202"
+      ],
+      "unavailable": [
+        [
+          "Fri",
+          7
+        ]
+      ],
+      "max_load": 14,
+      "avoid_periods": [
+        7
+      ]
+    },
+    {
+      "name": "Prof. Jeffrey Ullman",
+      "subjects": [
+        "CS202",
+        "CS203"
+      ],
+      "unavailable": [
+        [
+          "Mon",
+          2
+        ]
+      ],
+      "max_load": 14,
+      "avoid_periods": [
+        2
+      ]
+    },
+    {
+      "name": "Dr. Tim Berners-Lee",
+      "subjects": [
+        "CS203",
+        "CS203L"
+      ],
+      "unavailable": [
+        [
+          "Tue",
+          6
+        ]
+      ],
+      "max_load": 14,
+      "avoid_periods": [
+        6
+      ]
+    },
+    {
+      "name": "Dr. Radia Perlman",
+      "subjects": [
+        "CS201",
+        "CS201L"
+      ],
+      "unavailable": [
+        [
+          "Wed",
+          2
+        ]
+      ],
+      "max_load": 14,
+      "avoid_periods": [
+        6
+      ]
+    },
+    {
+      "name": "Prof. Robert Tarjan",
+      "subjects": [
+        "CS201",
+        "CS202"
+      ],
+      "unavailable": [
+        [
+          "Thu",
+          6
+        ]
+      ],
+      "max_load": 14,
+      "avoid_periods": [
+        1
+      ]
+    },
+    {
+      "name": "Prof. Shafi Goldwasser",
+      "subjects": [
+        "CS202",
+        "CS204"
+      ],
+      "unavailable": [
+        [
+          "Fri",
+          2
+        ]
+      ],
+      "max_load": 14,
+      "avoid_periods": [
+        2
+      ]
+    }
+  ],
+  "batches": [
+    {
+      "name": "CSE-2A",
+      "semester": 1,
+      "sem_type": "odd",
+      "strength": 55,
+      "auto_split": true,
+      "lunch_period": 4,
+      "subjects": [
+        "CS201",
+        "CS202",
+        "CS203",
+        "CS204"
+      ],
+      "labs": [
+        "CS201L",
+        "CS203L"
+      ],
+      "teacher_map": {}
+    },
+    {
+      "name": "CSE-2B",
+      "semester": 1,
+      "sem_type": "odd",
+      "strength": 50,
+      "auto_split": true,
+      "lunch_period": 4,
+      "subjects": [
+        "CS201",
+        "CS202",
+        "CS203",
+        "CS204"
+      ],
+      "labs": [
+        "CS201L",
+        "CS203L"
+      ],
+      "teacher_map": {}
+    },
+    {
+      "name": "CSE-2C",
+      "semester": 1,
+      "sem_type": "odd",
+      "strength": 48,
+      "auto_split": true,
+      "lunch_period": 4,
+      "subjects": [
+        "CS201",
+        "CS202",
+        "CS203",
+        "CS204"
+      ],
+      "labs": [
+        "CS201L",
+        "CS203L"
+      ],
+      "teacher_map": {}
+    },
+    {
+      "name": "CSE-2D",
+      "semester": 1,
+      "sem_type": "odd",
+      "strength": 52,
+      "auto_split": true,
+      "lunch_period": 4,
+      "subjects": [
+        "CS201",
+        "CS202",
+        "CS203",
+        "CS204"
+      ],
+      "labs": [
+        "CS201L",
+        "CS203L"
+      ],
+      "teacher_map": {}
+    },
+    {
+      "name": "IT-2A",
+      "semester": 1,
+      "sem_type": "odd",
+      "strength": 45,
+      "auto_split": true,
+      "lunch_period": 4,
+      "subjects": [
+        "CS201",
+        "CS202",
+        "CS203",
+        "CS204"
+      ],
+      "labs": [
+        "CS201L",
+        "CS203L"
+      ],
+      "teacher_map": {}
+    },
+    {
+      "name": "IT-2B",
+      "semester": 1,
+      "sem_type": "odd",
+      "strength": 42,
+      "auto_split": true,
+      "lunch_period": 4,
+      "subjects": [
+        "CS201",
+        "CS202",
+        "CS203",
+        "CS204"
+      ],
+      "labs": [
+        "CS201L",
+        "CS203L"
+      ],
+      "teacher_map": {}
+    },
+    {
+      "name": "ECE-2A",
+      "semester": 1,
+      "sem_type": "odd",
+      "strength": 58,
+      "auto_split": true,
+      "lunch_period": 4,
+      "subjects": [
+        "CS201",
+        "CS202",
+        "CS203",
+        "CS204"
+      ],
+      "labs": [
+        "CS201L",
+        "CS203L"
+      ],
+      "teacher_map": {}
+    },
+    {
+      "name": "ECE-2B",
+      "semester": 1,
+      "sem_type": "odd",
+      "strength": 46,
+      "auto_split": true,
+      "lunch_period": 4,
+      "subjects": [
+        "CS201",
+        "CS202",
+        "CS203",
+        "CS204"
+      ],
+      "labs": [
+        "CS201L",
+        "CS203L"
+      ],
+      "teacher_map": {}
+    }
+  ],
+  "classes": [
+    {
+      "name": "CSE-2A",
+      "strength": 55,
+      "subjects": [
+        "CS201",
+        "CS202",
+        "CS203",
+        "CS204",
+        "CS201L",
+        "CS203L"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "semester": 1
+    },
+    {
+      "name": "CSE-2B",
+      "strength": 50,
+      "subjects": [
+        "CS201",
+        "CS202",
+        "CS203",
+        "CS204",
+        "CS201L",
+        "CS203L"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "semester": 1
+    },
+    {
+      "name": "CSE-2C",
+      "strength": 48,
+      "subjects": [
+        "CS201",
+        "CS202",
+        "CS203",
+        "CS204",
+        "CS201L",
+        "CS203L"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "semester": 1
+    },
+    {
+      "name": "CSE-2D",
+      "strength": 52,
+      "subjects": [
+        "CS201",
+        "CS202",
+        "CS203",
+        "CS204",
+        "CS201L",
+        "CS203L"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "semester": 1
+    },
+    {
+      "name": "IT-2A",
+      "strength": 45,
+      "subjects": [
+        "CS201",
+        "CS202",
+        "CS203",
+        "CS204",
+        "CS201L",
+        "CS203L"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "semester": 1
+    },
+    {
+      "name": "IT-2B",
+      "strength": 42,
+      "subjects": [
+        "CS201",
+        "CS202",
+        "CS203",
+        "CS204",
+        "CS201L",
+        "CS203L"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "semester": 1
+    },
+    {
+      "name": "ECE-2A",
+      "strength": 58,
+      "subjects": [
+        "CS201",
+        "CS202",
+        "CS203",
+        "CS204",
+        "CS201L",
+        "CS203L"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "semester": 1
+    },
+    {
+      "name": "ECE-2B",
+      "strength": 46,
+      "subjects": [
+        "CS201",
+        "CS202",
+        "CS203",
+        "CS204",
+        "CS201L",
+        "CS203L"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "semester": 1
+    }
+  ]
+}

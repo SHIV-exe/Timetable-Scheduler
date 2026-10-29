@@ -1,0 +1,210 @@
+{
+  "time": {
+    "days": [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri"
+    ],
+    "periods_per_day": 6,
+    "break_periods": [],
+    "lab_block": 2
+  },
+  "subjects": [
+    {
+      "code": "MATH101",
+      "name": "Linear Algebra & Calculus",
+      "hours": 4,
+      "type": "theory"
+    },
+    {
+      "code": "PHY101",
+      "name": "Applied Physics",
+      "hours": 3,
+      "type": "theory"
+    },
+    {
+      "code": "CHEM101",
+      "name": "Engineering Chemistry",
+      "hours": 3,
+      "type": "theory"
+    },
+    {
+      "code": "CS101",
+      "name": "Computer Programming",
+      "hours": 4,
+      "type": "theory"
+    },
+    {
+      "code": "CS101L",
+      "name": "Programming Laboratory",
+      "hours": 2,
+      "type": "lab"
+    }
+  ],
+  "teachers": [
+    {
+      "name": "Dr. Alan Turing",
+      "subjects": [
+        "CS101",
+        "CS101L"
+      ],
+      "unavailable": [
+        [
+          "Mon",
+          1
+        ]
+      ],
+      "max_load": 12,
+      "avoid_periods": [
+        1
+      ]
+    },
+    {
+      "name": "Prof. Ada Lovelace",
+      "subjects": [
+        "CS101",
+        "CS101L"
+      ],
+      "unavailable": [
+        [
+          "Fri",
+          6
+        ]
+      ],
+      "max_load": 12,
+      "avoid_periods": [
+        6
+      ]
+    },
+    {
+      "name": "Dr. Carl Gauss",
+      "subjects": [
+        "MATH101"
+      ],
+      "unavailable": [
+        [
+          "Wed",
+          1
+        ]
+      ],
+      "max_load": 12,
+      "avoid_periods": [
+        1,
+        6
+      ]
+    },
+    {
+      "name": "Dr. Katherine Johnson",
+      "subjects": [
+        "MATH101"
+      ],
+      "unavailable": [
+        [
+          "Tue",
+          6
+        ]
+      ],
+      "max_load": 12,
+      "avoid_periods": [
+        5
+      ]
+    },
+    {
+      "name": "Dr. Marie Curie",
+      "subjects": [
+        "CHEM101"
+      ],
+      "unavailable": [
+        [
+          "Thu",
+          1
+        ]
+      ],
+      "max_load": 12,
+      "avoid_periods": [
+        2
+      ]
+    },
+    {
+      "name": "Dr. Richard Feynman",
+      "subjects": [
+        "PHY101"
+      ],
+      "unavailable": [
+        [
+          "Mon",
+          6
+        ]
+      ],
+      "max_load": 12,
+      "avoid_periods": [
+        6
+      ]
+    }
+  ],
+  "classes": [
+    {
+      "name": "CS-A",
+      "strength": 40,
+      "subjects": [
+        "MATH101",
+        "PHY101",
+        "CHEM101",
+        "CS101",
+        "CS101L"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {}
+    },
+    {
+      "name": "CS-B",
+      "strength": 50,
+      "subjects": [
+        "MATH101",
+        "PHY101",
+        "CHEM101",
+        "CS101",
+        "CS101L"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {}
+    },
+    {
+      "name": "CS-C",
+      "strength": 35,
+      "subjects": [
+        "MATH101",
+        "PHY101",
+        "CHEM101",
+        "CS101",
+        "CS101L"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {}
+    }
+  ],
+  "rooms": [
+    {
+      "name": "CR-101",
+      "capacity": 45,
+      "type": "classroom"
+    },
+    {
+      "name": "CR-102",
+      "capacity": 55,
+      "type": "classroom"
+    },
+    {
+      "name": "CR-103",
+      "capacity": 60,
+      "type": "classroom"
+    },
+    {
+      "name": "LAB-1",
+      "capacity": 60,
+      "type": "lab"
+    }
+  ]
+}

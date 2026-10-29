@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Constraint Satisfaction Timetable Scheduler</title>
+  <meta name="description" content="AI Timetable Scheduler comparing systematic backtracking CSP and stochastic local search algorithms under academic constraints.">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="ambient-layer"></div>
+
+  <div class="app-container">
+    <!-- Editorial Header -->
+    <header class="editorial-header">
+      <div class="header-meta">
+        <span class="badge badge-blue">Academic Optimization</span>
+        <span class="badge badge-yellow">CSP Formulation</span>
+        <span style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">v2.4 Editorial Core</span>
+      </div>
+      <h1>Constraint Satisfaction Timetable Scheduler</h1>
+      <p>
+        An advanced algorithmic laboratory comparing systematic depth-first backtracking, heuristic pruning (MRV, Degree, Forward Checking), and stochastic min-conflicts local search under academic constraints.
+      </p>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="nav-tabs" role="tablist">
+      <button class="tab-btn active" data-tab="tab-data" id="nav-data">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 10h16M10 4v16"/></svg>
+        1. Data Specification
+      </button>
+      <button class="tab-btn" data-tab="tab-generate" id="nav-generate">
+        <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        2. Algorithmic Search
+      </button>
+      <button class="tab-btn" data-tab="tab-views" id="nav-views">
+        <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="9" y1="4" x2="9" y2="20"/></svg>
+        3. Schedule Matrices
+      </button>
+      <button class="tab-btn" data-tab="tab-edit" id="nav-edit">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        4. Manual Calibration
+      </button>
+      <button class="tab-btn" data-tab="tab-export" id="nav-export">
+        <svg class="icon" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        5. Export Dispatch
+      </button>
+      <button class="tab-btn" data-tab="tab-benchmarks" id="nav-benchmarks">
+        <svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        6. Empirical Benchmarks
+      </button>
+    </nav>
+
+    <!-- Global Notice Bar -->
+    <div id="global-notice"></div>
+
+    <!-- ===================================================================
+         TAB 1: DATA SPECIFICATION
+         =================================================================== -->
+    <section class="tab-panel active" id="tab-data">
+      <div class="bento-grid">
+        <!-- Interactive Studio Command Card -->
+        <div class="bento-card col-12">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 16px;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                <span class="badge badge-blue">Form Studio</span>
+                <span id="loaded-dataset-badge" class="badge badge-green">Standard Small Active</span>
+              </div>
+              <h2 class="card-title">Institutional Timetable Configuration</h2>
+              <p class="card-desc">Directly create and edit batches, teachers, rooms, subjects, and 9 AM – 5 PM time slots. Changes persist automatically and validate live.</p>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button class="btn btn-primary btn-sm" id="btn-add-batch">
+                <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Batch
+              </button>
+              <button class="btn btn-primary btn-sm" id="btn-add-teacher">
+                <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Teacher
+              </button>
+              <button class="btn btn-primary btn-sm" id="btn-add-room">
+                <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Room
+              </button>
+              <button class="btn btn-secondary btn-sm" id="btn-add-subject">
+                <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Subject / Lab
+              </button>
+              <button class="btn btn-secondary btn-sm" id="btn-open-time-modal">
+                <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                9-5 Time Slots
+              </button>
+              <button class="btn btn-secondary btn-sm" id="btn-save-disk" title="Save custom dataset to server disk">
+                <svg class="icon" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                Save
+              </button>
+            </div>
+          </div>
+
+          <div style="margin-top: 14px; border-top: 1px solid var(--border-light); padding-top: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <span style="font-size: 0.8rem; font-family: var(--font-mono); color: var(--text-muted); text-transform: uppercase;">Presets:</span>
+              <button class="btn btn-secondary btn-sm" id="btn-load-small" style="padding: 3px 10px; font-size: 0.8rem;">Small (3 Classes)</button>
+              <button class="btn btn-secondary btn-sm" id="btn-load-large" style="padding: 3px 10px; font-size: 0.8rem;">Large (8 Classes)</button>
+              <button class="btn btn-secondary btn-sm" id="btn-reset-custom" style="padding: 3px 10px; font-size: 0.8rem;">Reset Form Data</button>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <label for="json-file-input" class="btn btn-secondary btn-sm" style="cursor: pointer; padding: 3px 10px; font-size: 0.8rem;">
+                Upload JSON
+              </label>
+              <input type="file" id="json-file-input" accept=".json" style="display: none;">
+              <button class="btn btn-secondary btn-sm" id="btn-download-tpl" style="padding: 3px 10px; font-size: 0.8rem;">
+                Download JSON
+              </button>
+              <span style="font-size: 0.82rem; color: var(--text-muted);" id="dataset-summary-text"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Time & Period Schedule Preview -->
+        <div class="bento-card col-12">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <h3 class="card-title" style="font-size: 1.25rem;">Daily Schedule & Named Period Slots (9:00 AM – 5:00 PM)</h3>
+              <p class="card-desc" style="margin-bottom: 0;">Period boundaries with 1-hour lunch break allocated automatically across the teaching day.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" id="btn-quick-edit-time">Configure Slots</button>
+          </div>
+          <div class="time-slots-container" id="time-slots-display">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Academic Batches & Sub-Batches Table -->
+        <div class="bento-card col-12">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+              <h3 class="card-title" style="font-size: 1.25rem;">Academic Batches & Lab Sub-Cohorts</h3>
+              <p class="card-desc" style="margin-bottom: 0;">Cohorts with Odd/Even semester selection. Batches with size 30, 60, 90, 120 are automatically divided into sub-batches of 30 for lab capacity compliance.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btn-add-batch-card">
+              <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Batch
+            </button>
+          </div>
+          <div id="table-classes-container"></div>
+        </div>
+
+        <!-- Faculty Staff Table -->
+        <div class="bento-card col-12">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+              <h3 class="card-title" style="font-size: 1.25rem;">Faculty Staff & Teaching Availability</h3>
+              <p class="card-desc" style="margin-bottom: 0;">Course qualifications, maximum weekly load limits, avoided periods, and hard unavailabilities.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btn-add-teacher-card">
+              <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Teacher
+            </button>
+          </div>
+          <div id="table-teachers-container"></div>
+        </div>
+
+        <!-- Rooms Table -->
+        <div class="bento-card col-6">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+              <h3 class="card-title" style="font-size: 1.2rem;">Rooms & Teaching Venues</h3>
+              <p class="card-desc" style="margin-bottom: 0;">Lecture Theatres, Tutorial Rooms, Classrooms, and Labs.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btn-add-room-card">
+              <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Room
+            </button>
+          </div>
+          <div id="table-rooms-container"></div>
+        </div>
+
+        <!-- Subjects & Labs Table -->
+        <div class="bento-card col-6">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+              <h3 class="card-title" style="font-size: 1.2rem;">Theory Subjects & Laboratories</h3>
+              <p class="card-desc" style="margin-bottom: 0;">Course codes, contact hours, and delivery format.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" id="btn-add-subject-card">
+              <svg class="icon" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Course
+            </button>
+          </div>
+          <div id="table-subjects-container"></div>
+        </div>
+
+        <!-- Feasibility Pre-Check Matrix -->
+        <div class="bento-card col-12">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+              <h3 class="card-title" style="font-size: 1.35rem;">Feasibility Pre-Check Matrix</h3>
+              <p class="card-desc" style="margin-bottom: 0;">Necessary mathematical conditions evaluated before search execution.</p>
+            </div>
+            <span id="feasibility-overall-badge" class="badge badge-green">All Checks Passed</span>
+          </div>
+
+          <div class="bento-grid" id="feasibility-grid" style="margin-bottom: 0;">
+            <!-- Feasibility cards injected via app.js -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         TAB 2: ALGORITHMIC SEARCH
+         =================================================================== -->
+    <section class="tab-panel" id="tab-generate">
+      <div class="bento-grid">
+        <!-- Control Panel -->
+        <div class="bento-card col-4">
+          <h2 class="card-title">Search Dispatcher</h2>
+          <p class="card-desc">Configure solver hyperparameters and deterministic seed.</p>
+
+          <form id="solve-form">
+            <div class="form-group">
+              <label class="form-label" for="select-algo">Algorithm</label>
+              <select class="form-control" id="select-algo">
+                <option value="Backtracking (MRV + FC + degree)">Backtracking (MRV + FC + Degree + Symmetry)</option>
+                <option value="Min-Conflicts">Min-Conflicts (Stochastic Local Search)</option>
+                <option value="Hybrid (BT + SA)" selected>Hybrid (BT/MC Feasibility + SA Polish)</option>
+                <option value="Simulated Annealing">Simulated Annealing (Metropolis Cooling)</option>
+                <option value="Hill Climbing">Hill Climbing (Greedy Descent)</option>
+                <option value="Backtracking (plain)">Backtracking Baseline (Plain Recursive)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="input-seed">Random Seed <kbd>0..9999</kbd></label>
+              <input type="number" class="form-control" id="input-seed" value="42" min="0" max="9999">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="input-timeout">Time Budget (seconds)</label>
+              <input type="number" class="form-control" id="input-timeout" value="30" min="1" max="300">
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="btn-run-solve" style="width: 100%; margin-top: 10px;">
+              <svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              Execute Search
+            </button>
+          </form>
+        </div>
+
+        <!-- Real-Time Metrics & Evaluation Bento -->
+        <div class="bento-card col-8">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+            <div>
+              <h2 class="card-title">Solution Metrics</h2>
+              <p class="card-desc" style="margin-bottom: 0;">Evaluation scored exclusively by the shared central evaluator (Section 5).</p>
+            </div>
+            <div id="solution-status-badge">
+              <span class="badge badge-yellow">Awaiting Execution</span>
+            </div>
+          </div>
+
+          <div class="bento-grid" style="margin-bottom: 24px;">
+            <div class="metric-box col-3">
+              <div class="metric-label">Elapsed Time</div>
+              <div class="metric-value" id="metric-time">--</div>
+              <div class="metric-sub">seconds</div>
+            </div>
+            <div class="metric-box col-3">
+              <div class="metric-label">Hard Violations</div>
+              <div class="metric-value" id="metric-hard">--</div>
+              <div class="metric-sub">target: 0</div>
+            </div>
+            <div class="metric-box col-3">
+              <div class="metric-label">Soft Penalty</div>
+              <div class="metric-value" id="metric-soft">--</div>
+              <div class="metric-sub">S1 + S2 + S4 + S5</div>
+            </div>
+            <div class="metric-box col-3">
+              <div class="metric-label">Search Work</div>
+              <div class="metric-value" id="metric-work">--</div>
+              <div class="metric-sub">nodes / iters</div>
+            </div>
+          </div>
+
+          <!-- Convergence Trace Container -->
+          <div id="trace-container" style="display: none; border-top: 1px solid var(--border-light); padding-top: 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span style="font-family: var(--font-mono); font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted);">
+                Convergence Curve (Cost vs Iterations)
+              </span>
+              <span class="badge badge-blue">Logarithmic Cost</span>
+            </div>
+            <div id="trace-chart" style="width: 100%; height: 160px;"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         TAB 3: SCHEDULE MATRICES (VIEWS)
+         =================================================================== -->
+    <section class="tab-panel" id="tab-views">
+      <div class="bento-grid">
+        <div class="bento-card col-12" style="padding-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <span class="form-label" style="margin-bottom: 0;">Perspective:</span>
+              <button class="btn btn-secondary btn-sm active-perspective" data-perspective="class" id="persp-class">Class</button>
+              <button class="btn btn-secondary btn-sm" data-perspective="teacher" id="persp-teacher">Teacher</button>
+              <button class="btn btn-secondary btn-sm" data-perspective="room" id="persp-room">Room</button>
+            </div>
+
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <label for="select-entity" class="form-label" style="margin-bottom: 0;">Select Entity:</label>
+              <select class="form-control" id="select-entity" style="width: 220px; padding: 6px 12px;"></select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Schedule Matrix in Faux-OS Window Chrome -->
+        <div class="col-12">
+          <div class="os-window">
+            <div class="os-topbar">
+              <div class="os-circle"></div>
+              <div class="os-circle"></div>
+              <div class="os-circle"></div>
+              <span class="os-title" id="os-window-title">Timetable Matrix &mdash; All Slots Disjoint</span>
+            </div>
+            <div class="os-content" id="timetable-matrix-container">
+              <p style="color: var(--text-muted); font-size: 0.95rem;">Execute algorithmic search or load a dataset to view the timetable matrix.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Constraint Notes Accordion -->
+        <div class="bento-card col-12">
+          <h3 class="card-title" style="font-size: 1.25rem;">Active Constraint Diagnostics</h3>
+          <p class="card-desc">Live messages and conflict notifications generated by the evaluator.</p>
+          <div id="diagnostics-list">
+            <p style="color: var(--text-muted); font-size: 0.88rem;">No active conflicts detected.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         TAB 4: MANUAL CALIBRATION (EDIT)
+         =================================================================== -->
+    <section class="tab-panel" id="tab-edit">
+      <div class="bento-grid">
+        <div class="bento-card col-5">
+          <h2 class="card-title">Manual Reassignment</h2>
+          <p class="card-desc">Move any session and evaluate constraint impact live before applying.</p>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-select-session">Select Session</label>
+            <select class="form-control" id="edit-select-session"></select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-select-day">Target Day</label>
+            <select class="form-control" id="edit-select-day"></select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-select-period">Target Start Period</label>
+            <select class="form-control" id="edit-select-period"></select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit-select-room">Target Room</label>
+            <select class="form-control" id="edit-select-room"></select>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 24px;">
+            <button class="btn btn-primary" id="btn-apply-move" style="flex: 1;">
+              Apply Move
+            </button>
+            <button class="btn btn-secondary" id="btn-undo-move" style="flex: 1;">
+              Undo Last (<span id="undo-count">0</span>)
+            </button>
+          </div>
+
+          <div style="margin-top: 14px;">
+            <button class="btn btn-secondary btn-sm" id="btn-suggest-slots" style="width: 100%;">
+              Suggest Zero-Conflict Slots
+            </button>
+          </div>
+        </div>
+
+        <div class="bento-card col-7">
+          <h2 class="card-title">Live Differential Evaluation</h2>
+          <p class="card-desc">Instant mathematical delta comparing current vs proposed assignment.</p>
+
+          <div id="trial-diff-box" class="notice-box notice-blue" style="margin-bottom: 18px;">
+            <div>
+              <strong>Trial Delta:</strong>
+              Hard: <code id="diff-hard">0 &rarr; 0</code> |
+              Soft: <code id="diff-soft">0 &rarr; 0</code>
+            </div>
+          </div>
+
+          <div id="trial-conflict-alerts"></div>
+
+          <!-- Suggested Slots Box -->
+          <div id="suggested-slots-container" style="display: none; border-top: 1px solid var(--border-light); padding-top: 18px; margin-top: 18px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <h4 style="font-family: var(--font-serif); font-size: 1.15rem; margin: 0;">Verified Zero-Conflict Slots</h4>
+              <span class="badge badge-green">Recommended</span>
+            </div>
+            <div id="suggested-slots-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         TAB 5: EXPORT DISPATCH
+         =================================================================== -->
+    <section class="tab-panel" id="tab-export">
+      <div class="bento-grid">
+        <div class="bento-card col-12">
+          <h2 class="card-title">Schedule Export Dispatch</h2>
+          <p class="card-desc">Download complete schedule matrices in standard interchange formats.</p>
+
+          <div class="bento-grid" style="margin-top: 24px;">
+            <div class="bento-card col-4" style="background: var(--surface-subtle);">
+              <h3 style="font-family: var(--font-serif); font-size: 1.3rem; margin-bottom: 8px;">Flat Tabular CSV</h3>
+              <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 18px;">
+                Complete relational table with columns: Class, Subject, Teacher, Day, Start Period, Length, Room.
+              </p>
+              <button class="btn btn-primary" id="btn-export-csv" style="width: 100%;">
+                Download Timetable (CSV)
+              </button>
+            </div>
+
+            <div class="bento-card col-4" style="background: var(--surface-subtle);">
+              <h3 style="font-family: var(--font-serif); font-size: 1.3rem; margin-bottom: 8px;">Full Solution JSON</h3>
+              <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 18px;">
+                Complete assignment dictionary mapping session ID to (day, period, room), plus evaluation metadata.
+              </p>
+              <button class="btn btn-secondary" id="btn-export-json" style="width: 100%;">
+                Download Solution (JSON)
+              </button>
+            </div>
+
+            <div class="bento-card col-4" style="background: var(--surface-subtle);">
+              <h3 style="font-family: var(--font-serif); font-size: 1.3rem; margin-bottom: 8px;">Printable Editorial Matrix</h3>
+              <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 18px;">
+                Clean printable document layout formatted for university noticeboards and official distribution.
+              </p>
+              <button class="btn btn-secondary" id="btn-print-matrix" style="width: 100%;">
+                Open & Print Schedule Document
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================================================================
+         TAB 6: EMPIRICAL BENCHMARKS
+         =================================================================== -->
+    <section class="tab-panel" id="tab-benchmarks">
+      <div class="bento-grid">
+        <div class="bento-card col-12">
+          <h2 class="card-title">Empirical Benchmark Results (Section 11)</h2>
+          <p class="card-desc">Comparative analysis across 120 experimental runs (6 algorithms × 2 datasets × 10 random seeds).</p>
+
+          <div id="benchmark-tables-container" style="margin-top: 20px;">
+            <p style="color: var(--text-muted);">Loading benchmark tables...</p>
+          </div>
+        </div>
+
+        <div class="bento-card col-12">
+          <h2 class="card-title">Analytical Findings (Section 11.5)</h2>
+          <div class="accordion-item">
+            <button class="accordion-trigger">
+              1. Which method was faster and how did the gap evolve?
+              <span>+</span>
+            </button>
+            <div class="accordion-body">
+              On the small dataset, <strong>Backtracking with Heuristics</strong> solved in under 0.05 seconds with only 50–80 node visits. However, as problem size scaled to the large dataset (144 sessions across 8 classes), <strong>Plain Backtracking</strong> timed out completely on 10/10 runs due to combinatorial tree explosion. <strong>Min-Conflicts</strong> proved to be the fastest on large problems, finding clash-free solutions in under 0.5s via O(1) incremental counter lookups.
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <button class="accordion-trigger">
+              2. Which method gave better soft-constraint quality?
+              <span>+</span>
+            </button>
+            <div class="accordion-body">
+              Systematic backtracking is indifferent to soft constraints and terminates at the first clash-free leaf, leading to high soft penalty scores (~250–320). In contrast, <strong>Simulated Annealing</strong> and the <strong>Hybrid Solver (BT + SA)</strong> produced the best timetable ergonomics, reducing soft penalty scores by over 50% while preserving zero hard violations.
+            </div>
+          </div>
+
+          <div class="accordion-item">
+            <button class="accordion-trigger">
+              3. When should each algorithmic approach be deployed?
+              <span>+</span>
+            </button>
+            <div class="accordion-body">
+              <strong>Backtracking CSP (Heuristics)</strong> is indispensable when mathematical proof of unsatisfiability is required or for tightly constrained cohorts. <strong>Min-Conflicts</strong> is optimal for fast, near-instant generation in large enterprise scenarios. The <strong>Hybrid Solver</strong> represents the gold standard when both zero violations and faculty ergonomics (minimal gaps and low fatigue) are non-negotiable.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 1: BATCH / CLASS MANAGEMENT
+       =================================================================== -->
+  <div class="modal-backdrop" id="modal-batch">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 id="modal-batch-title">Add Academic Batch</h3>
+          <p>Configure cohort semester, strength, lunch hour, and course enrollments.</p>
+        </div>
+        <button type="button" class="modal-close" data-close="modal-batch">&times;</button>
+      </div>
+      <form id="batch-form">
+        <div class="modal-body">
+          <input type="hidden" id="batch-edit-original" value="">
+
+          <div class="form-group">
+            <label class="form-label" for="batch-name">Batch Name / Code *</label>
+            <input type="text" class="form-control" id="batch-name" required placeholder="e.g. CSE-A, IT-B, MECH-1">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group">
+              <label class="form-label">Semester Term</label>
+              <div style="display: flex; gap: 12px; margin-top: 6px;">
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 0.85rem; cursor: pointer;">
+                  <input type="radio" name="batch-sem-type" id="batch-sem-type-odd" value="odd" checked>
+                  Odd (1, 3, 5, 7)
+                </label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 0.85rem; cursor: pointer;">
+                  <input type="radio" name="batch-sem-type" id="batch-sem-type-even" value="even">
+                  Even (2, 4, 6, 8)
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="batch-semester">Semester Number</label>
+              <select class="form-control" id="batch-semester">
+                <option value="1">Semester 1</option>
+                <option value="3" selected>Semester 3</option>
+                <option value="5">Semester 5</option>
+                <option value="7">Semester 7</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="batch-strength">Cohort Total Strength (Students) *</label>
+            <input type="number" class="form-control" id="batch-strength" required min="1" max="500" value="120">
+            <div class="quick-pill-group">
+              <span style="font-size: 0.75rem; color: var(--text-muted); align-self: center;">Quick Select:</span>
+              <button type="button" class="quick-pill" data-strength="30">30 Students</button>
+              <button type="button" class="quick-pill" data-strength="60">60 Students</button>
+              <button type="button" class="quick-pill" data-strength="90">90 Students</button>
+              <button type="button" class="quick-pill active" data-strength="120">120 Students</button>
+            </div>
+          </div>
+
+          <div class="split-info-box" id="batch-split-preview">
+            <strong>Lab Capacity Auto-Division (Max 30 / Lab)</strong>
+            <span>Batch strength 120 will automatically divide into 4 sub-batches (A1, A2, A3, A4) of 30 students each for lab session feasibility.</span>
+          </div>
+
+          <div class="form-group" style="margin-top: 14px;">
+            <label style="display: flex; align-items: center; gap: 8px; font-size: 0.85rem; cursor: pointer;">
+              <input type="checkbox" id="batch-auto-split" checked>
+              <strong>Enable automatic sub-batch division of 30 for practical labs</strong>
+            </label>
+          </div>
+
+          <div class="form-group" style="margin-top: 14px;">
+            <label class="form-label" for="batch-lunch">Designated 1-Hour Lunch Break Period *</label>
+            <select class="form-control" id="batch-lunch">
+              <!-- Dynamically populated from time slots -->
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Assigned Theory Subjects</label>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 6px 0;">Select subjects delivered to the cohort:</p>
+            <div class="pill-grid" id="batch-theory-checkboxes">
+              <!-- Populated via app.js -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Assigned Practical Laboratories</label>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 6px 0;">Select lab courses divided across sub-batches:</p>
+            <div class="pill-grid" id="batch-lab-checkboxes">
+              <!-- Populated via app.js -->
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-batch">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-batch">Save Batch</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 2: TEACHER / FACULTY MANAGEMENT
+       =================================================================== -->
+  <div class="modal-backdrop" id="modal-teacher">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3 id="modal-teacher-title">Add Faculty Member</h3>
+          <p>Assign qualified subjects, weekly teaching load limits, and availability schedule.</p>
+        </div>
+        <button type="button" class="modal-close" data-close="modal-teacher">&times;</button>
+      </div>
+      <form id="teacher-form">
+        <div class="modal-body">
+          <input type="hidden" id="teacher-edit-original" value="">
+
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 16px;">
+            <div class="form-group">
+              <label class="form-label" for="teacher-name">Faculty Name *</label>
+              <input type="text" class="form-control" id="teacher-name" required placeholder="e.g. Dr. Alan Turing, Prof. Lovelace">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="teacher-max-load">Max Weekly Hours *</label>
+              <input type="number" class="form-control" id="teacher-max-load" required min="1" max="40" value="16">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Qualified Subjects & Labs *</label>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 6px 0;">Check all subjects this teacher is certified to instruct:</p>
+            <div class="pill-grid" id="teacher-subjects-checkboxes">
+              <!-- Populated via app.js -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Soft Avoided Periods (Faculty Preference)</label>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 6px 0;">Periods faculty prefers not to have scheduled:</p>
+            <div class="pill-grid" id="teacher-avoid-periods">
+              <!-- Populated via app.js -->
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Hard Unavailable Timeslots (H6 Constraint)</label>
+            <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 6px 0;">Click slots to toggle between Available (blank) and Off-Campus Unavailable (red):</p>
+            <div id="teacher-unavail-grid-container" style="overflow-x: auto;">
+              <!-- Table matrix generated via app.js -->
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-teacher">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-teacher">Save Faculty</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 3: ROOM MANAGEMENT
+       =================================================================== -->
+  <div class="modal-backdrop" id="modal-room">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 id="modal-room-title">Add Room / Venue</h3>
+          <p>Specify venue type and maximum student seating capacity.</p>
+        </div>
+        <button type="button" class="modal-close" data-close="modal-room">&times;</button>
+      </div>
+      <form id="room-form">
+        <div class="modal-body">
+          <input type="hidden" id="room-edit-original" value="">
+
+          <div class="form-group">
+            <label class="form-label" for="room-name">Room Identifier / Number *</label>
+            <input type="text" class="form-control" id="room-name" required placeholder="e.g. LT-101, TR-204, Lab-A">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="room-type">Room Type *</label>
+            <select class="form-control" id="room-type">
+              <option value="lecture_theatre">Lecture Theatre (Full Batch Lectures)</option>
+              <option value="tutorial_room">Tutorial Room (Smaller Cohorts / Discussions)</option>
+              <option value="classroom" selected>Classroom (Standard Theory Lectures)</option>
+              <option value="lab">Laboratory (Practical / Experimental Sessions)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="room-capacity">Seating Capacity (Students) *</label>
+            <input type="number" class="form-control" id="room-capacity" required min="1" max="500" value="60">
+            <div class="quick-pill-group">
+              <span style="font-size: 0.75rem; color: var(--text-muted); align-self: center;">Suggested:</span>
+              <button type="button" class="quick-pill" data-room-cap="30">30 (Lab)</button>
+              <button type="button" class="quick-pill" data-room-cap="60">60 (Classroom)</button>
+              <button type="button" class="quick-pill" data-room-cap="120">120 (Lecture Theatre)</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-room">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-room">Save Room</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 4: SUBJECT / LAB MANAGEMENT
+       =================================================================== -->
+  <div class="modal-backdrop" id="modal-subject">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 id="modal-subject-title">Add Course / Subject</h3>
+          <p>Define academic course code, name, weekly contact hours, and type.</p>
+        </div>
+        <button type="button" class="modal-close" data-close="modal-subject">&times;</button>
+      </div>
+      <form id="subject-form">
+        <div class="modal-body">
+          <input type="hidden" id="subject-edit-original" value="">
+
+          <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px;">
+            <div class="form-group">
+              <label class="form-label" for="subject-code">Course Code *</label>
+              <input type="text" class="form-control" id="subject-code" required placeholder="e.g. CS301, PH102P">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="subject-name">Course Title *</label>
+              <input type="text" class="form-control" id="subject-name" required placeholder="e.g. Data Structures, Physics Lab">
+            </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="form-group">
+              <label class="form-label">Delivery Format</label>
+              <div style="display: flex; gap: 16px; margin-top: 6px;">
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 0.85rem; cursor: pointer;">
+                  <input type="radio" name="subject-type" id="subject-type-theory" value="theory" checked>
+                  Theory Lecture
+                </label>
+                <label style="display: flex; align-items: center; gap: 4px; font-size: 0.85rem; cursor: pointer;">
+                  <input type="radio" name="subject-type" id="subject-type-lab" value="lab">
+                  Practical Lab
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="subject-hours">Weekly Contact Hours *</label>
+              <input type="number" class="form-control" id="subject-hours" required min="1" max="10" value="4">
+            </div>
+          </div>
+
+          <div class="form-group" id="subject-lab-block-group" style="display: none;">
+            <label class="form-label" for="subject-lab-block">Consecutive Lab Block Length (Periods)</label>
+            <input type="number" class="form-control" id="subject-lab-block" min="1" max="4" value="2">
+            <span style="font-size: 0.75rem; color: var(--text-muted);">Standard lab sessions run for 2 consecutive periods.</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-subject">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-subject">Save Course</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 5: 9 AM - 5 PM TIME & PERIOD STRUCTURE
+       =================================================================== -->
+  <div class="modal-backdrop" id="modal-time">
+    <div class="modal-card modal-lg">
+      <div class="modal-header">
+        <div>
+          <h3>Academic Schedule & Period Configuration</h3>
+          <p>Operates strictly within 9:00 AM – 5:00 PM with a designated 1-hour lunch break.</p>
+        </div>
+        <button type="button" class="modal-close" data-close="modal-time">&times;</button>
+      </div>
+      <form id="time-form">
+        <div class="modal-body">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+            <div class="form-group">
+              <label class="form-label" for="time-start">Earliest Start (>= 9:00 AM)</label>
+              <input type="text" class="form-control" id="time-start" value="09:00 AM" readonly>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="time-end">Latest End (<= 5:00 PM)</label>
+              <input type="text" class="form-control" id="time-end" value="05:00 PM" readonly>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="time-periods-count">Periods Per Day</label>
+              <select class="form-control" id="time-periods-count">
+                <option value="6">6 Periods (9 AM - 3 PM)</option>
+                <option value="7">7 Periods (9 AM - 4 PM)</option>
+                <option value="8" selected>8 Periods (9 AM - 5 PM)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Active Teaching Days</label>
+            <div class="quick-pill-group" id="time-days-pills">
+              <label class="pill-check checked"><input type="checkbox" value="Mon" checked> Mon</label>
+              <label class="pill-check checked"><input type="checkbox" value="Tue" checked> Tue</label>
+              <label class="pill-check checked"><input type="checkbox" value="Wed" checked> Wed</label>
+              <label class="pill-check checked"><input type="checkbox" value="Thu" checked> Thu</label>
+              <label class="pill-check checked"><input type="checkbox" value="Fri" checked> Fri</label>
+              <label class="pill-check"><input type="checkbox" value="Sat"> Sat</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="time-lunch-period">Designated 1-Hour Lunch Break Period</label>
+            <select class="form-control" id="time-lunch-period">
+              <!-- Populated dynamically -->
+            </select>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">Cohorts have free time during lunch; no theory or lab sessions will be scheduled during their lunch hour.</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Generated 9-5 Period Slots Preview</label>
+            <div class="time-slots-container" id="time-slots-modal-preview">
+              <!-- Rendered preview -->
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="modal-time">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-time">Apply Time Settings</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>
