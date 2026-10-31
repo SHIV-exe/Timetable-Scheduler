@@ -104,6 +104,7 @@
               <span style="font-size: 0.8rem; font-family: var(--font-mono); color: var(--text-muted); text-transform: uppercase;">Presets:</span>
               <button class="btn btn-secondary btn-sm" id="btn-load-small" style="padding: 3px 10px; font-size: 0.8rem;">Small (3 Classes)</button>
               <button class="btn btn-secondary btn-sm" id="btn-load-large" style="padding: 3px 10px; font-size: 0.8rem;">Large (8 Classes)</button>
+              <button class="btn btn-secondary btn-sm" id="btn-load-institutional" style="padding: 3px 10px; font-size: 0.8rem;">Institutional (7 Batches)</button>
               <button class="btn btn-secondary btn-sm" id="btn-reset-custom" style="padding: 3px 10px; font-size: 0.8rem;">Reset Form Data</button>
             </div>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
@@ -316,6 +317,10 @@
             <div style="display: flex; gap: 8px; align-items: center;">
               <label for="select-entity" class="form-label" style="margin-bottom: 0;">Select Entity:</label>
               <select class="form-control" id="select-entity" style="width: 220px; padding: 6px 12px;"></select>
+              <button class="btn btn-secondary btn-sm" id="btn-print-current-view" title="Print this specific schedule view">
+                <svg class="icon" viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                Print View
+              </button>
             </div>
           </div>
         </div>
@@ -450,11 +455,16 @@
             <div class="bento-card col-4" style="background: var(--surface-subtle);">
               <h3 style="font-family: var(--font-serif); font-size: 1.3rem; margin-bottom: 8px;">Printable Editorial Matrix</h3>
               <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 18px;">
-                Clean printable document layout formatted for university noticeboards and official distribution.
+                Clean printable document layout formatted for university noticeboards with zero site navigation chrome.
               </p>
-              <button class="btn btn-secondary" id="btn-print-matrix" style="width: 100%;">
-                Open & Print Schedule Document
-              </button>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <button class="btn btn-secondary" id="btn-print-matrix" style="width: 100%;">
+                  Open & Print Schedule Document
+                </button>
+                <button class="btn btn-secondary btn-sm" id="btn-export-html" style="width: 100%;">
+                  Download Printable Report (HTML)
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -467,10 +477,53 @@
     <section class="tab-panel" id="tab-benchmarks">
       <div class="bento-grid">
         <div class="bento-card col-12">
-          <h2 class="card-title">Empirical Benchmark Results (Section 11)</h2>
-          <p class="card-desc">Comparative analysis across 120 experimental runs (6 algorithms × 2 datasets × 10 random seeds).</p>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+            <div>
+              <h2 class="card-title">Empirical Benchmark Results & Comparative Analysis</h2>
+              <p class="card-desc" style="margin-bottom: 0;">Systematic algorithmic benchmarking across datasets with full runtime, search work, clash count, and soft constraint penalty outputs.</p>
+            </div>
+          </div>
 
-          <div id="benchmark-tables-container" style="margin-top: 20px;">
+          <!-- Interactive Benchmark Runner on Any Dataset -->
+          <div class="benchmark-actions-bar">
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <div>
+                <label style="font-size: 0.78rem; font-family: var(--font-mono); color: var(--text-muted); display: block; margin-bottom: 4px; text-transform: uppercase;">Benchmark Target Dataset:</label>
+                <select class="form-control" id="bench-select-dataset" style="padding: 5px 12px; font-size: 0.85rem; min-width: 240px;">
+                  <option value="active" selected>Active In-Memory Dataset</option>
+                  <option value="institutional">Institutional Dataset (7 Batches / 29 Classes)</option>
+                  <option value="custom">Custom Dataset (custom.json)</option>
+                  <option value="large">Large Dataset (8 Classes)</option>
+                  <option value="small">Small Dataset (3 Classes)</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size: 0.78rem; font-family: var(--font-mono); color: var(--text-muted); display: block; margin-bottom: 4px; text-transform: uppercase;">Time Budget / Algo:</label>
+                <select class="form-control" id="bench-select-timeout" style="padding: 5px 12px; font-size: 0.85rem; width: 110px;">
+                  <option value="3.0">3.0s (Fast)</option>
+                  <option value="5.0" selected>5.0s (Standard)</option>
+                  <option value="10.0">10.0s (Deep)</option>
+                </select>
+              </div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: flex-end;">
+              <button class="btn btn-primary" id="btn-run-live-benchmark" style="padding: 8px 18px; font-size: 0.88rem;">
+                <svg class="icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Run Live Benchmark
+              </button>
+            </div>
+          </div>
+
+          <!-- Dataset Filter Navigation Tabs -->
+          <div class="benchmark-tab-buttons" id="benchmark-filter-tabs">
+            <button class="benchmark-tab-btn active" data-filter="all">All Datasets</button>
+            <button class="benchmark-tab-btn" data-filter="institutional">Institutional Specification</button>
+            <button class="benchmark-tab-btn" data-filter="custom">Custom / Active</button>
+            <button class="benchmark-tab-btn" data-filter="large">Large Dataset</button>
+            <button class="benchmark-tab-btn" data-filter="small">Small Dataset</button>
+          </div>
+
+          <div id="benchmark-tables-container" style="margin-top: 10px;">
             <p style="color: var(--text-muted);">Loading benchmark tables...</p>
           </div>
         </div>
@@ -774,6 +827,18 @@
             <label class="form-label" for="subject-lab-block">Consecutive Lab Block Length (Periods)</label>
             <input type="number" class="form-control" id="subject-lab-block" min="1" max="4" value="2">
             <span style="font-size: 0.75rem; color: var(--text-muted);">Standard lab sessions run for 2 consecutive periods.</span>
+          </div>
+
+          <div class="form-group" id="subject-room-venue-group" style="display: none;">
+            <label class="form-label" for="subject-room-type">Conducted In (Room Venue Type) *</label>
+            <select class="form-control" id="subject-room-type">
+              <option value="lab" selected>Laboratory (Default)</option>
+              <option value="tutorial_room">Tutorial Room (e.g. Communication Skills, Seminars)</option>
+              <option value="classroom">Classroom / Lecture Hall (e.g. Management, Case Studies)</option>
+            </select>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">
+              Choose venue type. Standard labs require a laboratory. Labs like Communication Skills or Management can be conducted in tutorial rooms or classrooms.
+            </span>
           </div>
         </div>
         <div class="modal-footer">

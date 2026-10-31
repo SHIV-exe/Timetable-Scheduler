@@ -1,0 +1,1327 @@
+{
+  "time": {
+    "days": [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri"
+    ],
+    "periods_per_day": 7,
+    "break_periods": [],
+    "lab_block": 2,
+    "period_slots": [
+      {
+        "period": 1,
+        "name": "09:00 AM - 10:00 AM",
+        "start": "09:00",
+        "end": "10:00",
+        "is_lunch": false
+      },
+      {
+        "period": 2,
+        "name": "10:00 AM - 11:00 AM",
+        "start": "10:00",
+        "end": "11:00",
+        "is_lunch": false
+      },
+      {
+        "period": 3,
+        "name": "11:00 AM - 12:00 PM",
+        "start": "11:00",
+        "end": "12:00",
+        "is_lunch": false
+      },
+      {
+        "period": 4,
+        "name": "12:00 PM - 01:00 PM",
+        "start": "12:00",
+        "end": "13:00",
+        "is_lunch": false
+      },
+      {
+        "period": 5,
+        "name": "01:00 PM - 02:00 PM",
+        "start": "13:00",
+        "end": "14:00",
+        "is_lunch": true
+      },
+      {
+        "period": 6,
+        "name": "02:00 PM - 03:00 PM",
+        "start": "14:00",
+        "end": "15:00",
+        "is_lunch": false
+      },
+      {
+        "period": 7,
+        "name": "03:00 PM - 04:00 PM",
+        "start": "15:00",
+        "end": "16:00",
+        "is_lunch": false
+      }
+    ]
+  },
+  "subjects": [
+    {
+      "code": "MAT-103",
+      "name": "Mathematical Foundation of Learning",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "AIT-101",
+      "name": "Foundation of learning",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "ECT-101",
+      "name": "Digital design",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "HST-101",
+      "name": "Communication skills",
+      "type": "theory",
+      "hours": 2
+    },
+    {
+      "code": "CST-101",
+      "name": "Computer System and Programming",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "CSP-101",
+      "name": "CS and Programming Lab",
+      "type": "lab",
+      "hours": 2
+    },
+    {
+      "code": "AIP-111",
+      "name": "AI tinkering lab",
+      "type": "lab",
+      "hours": 2
+    },
+    {
+      "code": "ECP-101",
+      "name": "Digital design lab",
+      "type": "lab",
+      "hours": 2
+    },
+    {
+      "code": "HSP-101",
+      "name": "Communication skills lab",
+      "type": "lab",
+      "hours": 2
+    },
+    {
+      "code": "AIT-201",
+      "name": "Digital Sys and Comp Architecture",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "AIT-203",
+      "name": "Artificial Intelligence",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "AIT-205",
+      "name": "Machine Learning",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "CST-207",
+      "name": "Design and Ananlysis of Algo",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "MAT-201",
+      "name": "Mathematics-II",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "HST-203",
+      "name": "S Sc and Prof Ethics",
+      "type": "theory",
+      "hours": 2
+    },
+    {
+      "code": "CSP-207",
+      "name": "Design and Ananlysis of Algo Lab",
+      "type": "lab",
+      "hours": 2
+    },
+    {
+      "code": "AIP-203",
+      "name": "AI Lab",
+      "type": "lab",
+      "hours": 2
+    },
+    {
+      "code": "AIP-205",
+      "name": "Machine Learning Lab",
+      "type": "lab",
+      "hours": 2
+    },
+    {
+      "code": "AIP-211",
+      "name": "Web Development Lab",
+      "type": "lab",
+      "hours": 2
+    },
+    {
+      "code": "CST-201",
+      "name": "Database Management System",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "CST-203",
+      "name": "Software Engineering",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "ECT-201",
+      "name": "Microprocessors and Microcontrollers",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "ECT-211",
+      "name": "Communication Systems",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "HST-201",
+      "name": "Engineering for Social Empowerment",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "CSP-201",
+      "name": "DBMS Lab",
+      "type": "lab",
+      "hours": 2
+    },
+    {
+      "code": "ECP-201",
+      "name": "MPMC Lab",
+      "type": "lab",
+      "hours": 2
+    },
+    {
+      "code": "MMP-201",
+      "name": "Engineering Creativity, Innovation and Design",
+      "type": "lab",
+      "hours": 2
+    },
+    {
+      "code": "ECT-203",
+      "name": "Analog Integrated Circuits",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "ECT-205",
+      "name": "Signals and Systems",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "ECT-207",
+      "name": "Circuits and Networks",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "CST-241",
+      "name": "DBMS",
+      "type": "theory",
+      "hours": 3
+    },
+    {
+      "code": "ECP-203",
+      "name": "Analog IC Lab",
+      "type": "lab",
+      "hours": 2
+    },
+    {
+      "code": "CSP-241",
+      "name": "DBMS Lab",
+      "type": "lab",
+      "hours": 2
+    }
+  ],
+  "rooms": [
+    {
+      "name": "LT-1",
+      "type": "lecture_theatre",
+      "capacity": 120
+    },
+    {
+      "name": "LT-2",
+      "type": "lecture_theatre",
+      "capacity": 120
+    },
+    {
+      "name": "LT-3",
+      "type": "lecture_theatre",
+      "capacity": 120
+    },
+    {
+      "name": "LT-4",
+      "type": "lecture_theatre",
+      "capacity": 120
+    },
+    {
+      "name": "LT-5",
+      "type": "lecture_theatre",
+      "capacity": 120
+    },
+    {
+      "name": "LT-6",
+      "type": "lecture_theatre",
+      "capacity": 120
+    },
+    {
+      "name": "RM-141",
+      "type": "classroom",
+      "capacity": 60
+    },
+    {
+      "name": "RM-142",
+      "type": "classroom",
+      "capacity": 60
+    },
+    {
+      "name": "RM-241",
+      "type": "classroom",
+      "capacity": 60
+    },
+    {
+      "name": "RM-242",
+      "type": "tutorial_room",
+      "capacity": 30
+    },
+    {
+      "name": "RM-243",
+      "type": "tutorial_room",
+      "capacity": 30
+    },
+    {
+      "name": "RM-307",
+      "type": "tutorial_room",
+      "capacity": 30
+    },
+    {
+      "name": "RM-308",
+      "type": "tutorial_room",
+      "capacity": 30
+    },
+    {
+      "name": "LAB-1",
+      "type": "lab",
+      "capacity": 30
+    },
+    {
+      "name": "LAB-2",
+      "type": "lab",
+      "capacity": 30
+    },
+    {
+      "name": "LAB-32",
+      "type": "lab",
+      "capacity": 90
+    },
+    {
+      "name": "LAB-107",
+      "type": "lab",
+      "capacity": 30
+    },
+    {
+      "name": "LAB-108",
+      "type": "lab",
+      "capacity": 30
+    },
+    {
+      "name": "LAB-137",
+      "type": "lab",
+      "capacity": 30
+    },
+    {
+      "name": "LAB-138",
+      "type": "lab",
+      "capacity": 30
+    },
+    {
+      "name": "LAB-235",
+      "type": "lab",
+      "capacity": 30
+    },
+    {
+      "name": "LAB-236",
+      "type": "lab",
+      "capacity": 30
+    },
+    {
+      "name": "LAB-222",
+      "type": "lab",
+      "capacity": 30
+    },
+    {
+      "name": "LAB-221",
+      "type": "lab",
+      "capacity": 30
+    }
+  ],
+  "teachers": [
+    {
+      "name": "Dr. Ashok Kumar Kherodia",
+      "subjects": [
+        "ECT-201",
+        "ECP-201"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr. Amit Kumar Garg",
+      "subjects": [
+        "ECT-101",
+        "ECP-101",
+        "ECT-203",
+        "ECP-203"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr. Anand Agrawal",
+      "subjects": [
+        "ECP-101",
+        "ECT-205"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr. Parikshit Kishore Singh",
+      "subjects": [
+        "ECT-207"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr. Prashant Goyal",
+      "subjects": [
+        "MAT-103",
+        "MAT-201"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Mr. Javed Khan",
+      "subjects": [
+        "AIP-111",
+        "CST-241"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Mr Nitin Bana",
+      "subjects": [
+        "AIP-211"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Mr Moinuddin",
+      "subjects": [
+        "AIP-211"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr Ajay Kumar",
+      "subjects": [
+        "ECP-201"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr Chetna Verma",
+      "subjects": [
+        "ECP-101",
+        "ECP-201"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Mr Mohammad Salman",
+      "subjects": [
+        "ECP-101",
+        "ECP-203"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr Aditi Gaur",
+      "subjects": [
+        "HST-201",
+        "MMP-201",
+        "HSP-101",
+        "HST-101"
+      ],
+      "max_load": 20,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Ms. Anjali Vyas",
+      "subjects": [
+        "CSP-201",
+        "CSP-241"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Ms. Gunjan Sharma",
+      "subjects": [
+        "CSP-101",
+        "CSP-201",
+        "CSP-241"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Ms. Shubhanjali Sharma",
+      "subjects": [
+        "CSP-101",
+        "CST-201"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Ms. Vijeta Sharma",
+      "subjects": [
+        "CST-203"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr. Pintu Kumar",
+      "subjects": [
+        "ECT-201"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr. Vinita Tiwari",
+      "subjects": [
+        "ECT-211"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr. Kapil Chaudhary",
+      "subjects": [
+        "MAT-201"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Ms. Kalpana Pathak",
+      "subjects": [
+        "AIP-211"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr. Ankita Birla",
+      "subjects": [
+        "HST-203",
+        "MMP-201",
+        "HSP-101",
+        "HST-101"
+      ],
+      "max_load": 20,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr. Ritam Sharma",
+      "subjects": [
+        "AIT-101",
+        "AIT-203"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr. Adarsh Kumar",
+      "subjects": [
+        "HST-101",
+        "HSP-101"
+      ],
+      "max_load": 20,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr. Gyan Singh Yadav",
+      "subjects": [
+        "CST-101",
+        "CSP-101"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Ms. Dakshita Pathak",
+      "subjects": [
+        "CSP-101"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Mr. Himanshu Grovar",
+      "subjects": [
+        "AIP-111"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr. Shekhar Pratap Singh",
+      "subjects": [
+        "ECP-101"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr. Pooja Sharma",
+      "subjects": [
+        "AIT-201",
+        "CSP-207",
+        "AIP-203"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr. Veena Khandelwal",
+      "subjects": [
+        "AIT-205",
+        "AIP-205"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr. Ramesh Battula",
+      "subjects": [
+        "CST-207"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    },
+    {
+      "name": "Dr. Shibna Hussain",
+      "subjects": [
+        "AIP-205"
+      ],
+      "max_load": 16,
+      "avoid_periods": [],
+      "unavailable": []
+    }
+  ],
+  "batches": [
+    {
+      "name": "CSE A",
+      "semester": 3,
+      "sem_type": "odd",
+      "strength": 90,
+      "auto_split": true,
+      "lunch_period": 5,
+      "subjects": [
+        "MAT-201",
+        "CST-201",
+        "CST-203",
+        "ECT-201",
+        "ECT-211",
+        "HST-201"
+      ],
+      "labs": [
+        "AIP-211",
+        "CSP-201",
+        "ECP-201",
+        "MMP-201"
+      ],
+      "teacher_map": {}
+    },
+    {
+      "name": "CSE B",
+      "semester": 3,
+      "sem_type": "odd",
+      "strength": 90,
+      "auto_split": true,
+      "lunch_period": 5,
+      "subjects": [
+        "MAT-201",
+        "CST-201",
+        "CST-203",
+        "ECT-201",
+        "ECT-211",
+        "HST-201"
+      ],
+      "labs": [
+        "AIP-211",
+        "CSP-201",
+        "ECP-201",
+        "MMP-201"
+      ],
+      "teacher_map": {}
+    },
+    {
+      "name": "AIDE D",
+      "semester": 3,
+      "sem_type": "odd",
+      "strength": 60,
+      "auto_split": true,
+      "lunch_period": 5,
+      "subjects": [
+        "AIT-201",
+        "AIT-203",
+        "AIT-205",
+        "CST-207",
+        "MAT-201",
+        "HST-203"
+      ],
+      "labs": [
+        "CSP-207",
+        "AIP-203",
+        "AIP-205",
+        "AIP-211"
+      ],
+      "teacher_map": {}
+    },
+    {
+      "name": "ECE C",
+      "semester": 3,
+      "sem_type": "odd",
+      "strength": 90,
+      "auto_split": true,
+      "lunch_period": 5,
+      "subjects": [
+        "MAT-201",
+        "ECT-201",
+        "ECT-203",
+        "ECT-205",
+        "ECT-207",
+        "CST-241"
+      ],
+      "labs": [
+        "AIP-211",
+        "ECP-201",
+        "MMP-201",
+        "ECP-203",
+        "CSP-241"
+      ],
+      "teacher_map": {}
+    },
+    {
+      "name": "YEAR 1 -A",
+      "semester": 1,
+      "sem_type": "odd",
+      "strength": 120,
+      "auto_split": true,
+      "lunch_period": 4,
+      "subjects": [
+        "MAT-103",
+        "AIT-101",
+        "ECT-101",
+        "HST-101",
+        "CST-101"
+      ],
+      "labs": [
+        "CSP-101",
+        "AIP-111",
+        "ECP-101",
+        "HSP-101"
+      ],
+      "teacher_map": {}
+    },
+    {
+      "name": "YEAR 1 -B",
+      "semester": 1,
+      "sem_type": "odd",
+      "strength": 120,
+      "auto_split": true,
+      "lunch_period": 4,
+      "subjects": [
+        "MAT-103",
+        "AIT-101",
+        "ECT-101",
+        "HST-101",
+        "CST-101"
+      ],
+      "labs": [
+        "CSP-101",
+        "AIP-111",
+        "ECP-101",
+        "HSP-101"
+      ],
+      "teacher_map": {}
+    },
+    {
+      "name": "YEAR 1 -C",
+      "semester": 1,
+      "sem_type": "odd",
+      "strength": 90,
+      "auto_split": true,
+      "lunch_period": 4,
+      "subjects": [
+        "MAT-103",
+        "AIT-101",
+        "ECT-101",
+        "HST-101",
+        "CST-101"
+      ],
+      "labs": [
+        "CSP-101",
+        "AIP-111",
+        "ECP-101",
+        "HSP-101"
+      ],
+      "teacher_map": {}
+    }
+  ],
+  "classes": [
+    {
+      "name": "CSE A",
+      "strength": 90,
+      "subjects": [
+        "MAT-201",
+        "CST-201",
+        "CST-203",
+        "ECT-201",
+        "ECT-211",
+        "HST-201"
+      ],
+      "lunch_period": 5,
+      "teacher_map": {},
+      "parent_class": null,
+      "parent_batch": "CSE A",
+      "semester": 3
+    },
+    {
+      "name": "CSE A1",
+      "strength": 30,
+      "subjects": [
+        "AIP-211",
+        "CSP-201",
+        "ECP-201",
+        "MMP-201"
+      ],
+      "lunch_period": 5,
+      "teacher_map": {},
+      "parent_class": "CSE A",
+      "parent_batch": "CSE A",
+      "sub_index": 1,
+      "semester": 3
+    },
+    {
+      "name": "CSE A2",
+      "strength": 30,
+      "subjects": [
+        "AIP-211",
+        "CSP-201",
+        "ECP-201",
+        "MMP-201"
+      ],
+      "lunch_period": 5,
+      "teacher_map": {},
+      "parent_class": "CSE A",
+      "parent_batch": "CSE A",
+      "sub_index": 2,
+      "semester": 3
+    },
+    {
+      "name": "CSE A3",
+      "strength": 30,
+      "subjects": [
+        "AIP-211",
+        "CSP-201",
+        "ECP-201",
+        "MMP-201"
+      ],
+      "lunch_period": 5,
+      "teacher_map": {},
+      "parent_class": "CSE A",
+      "parent_batch": "CSE A",
+      "sub_index": 3,
+      "semester": 3
+    },
+    {
+      "name": "CSE B",
+      "strength": 90,
+      "subjects": [
+        "MAT-201",
+        "CST-201",
+        "CST-203",
+        "ECT-201",
+        "ECT-211",
+        "HST-201"
+      ],
+      "lunch_period": 5,
+      "teacher_map": {},
+      "parent_class": null,
+      "parent_batch": "CSE B",
+      "semester": 3
+    },
+    {
+      "name": "CSE B1",
+      "strength": 30,
+      "subjects": [
+        "AIP-211",
+        "CSP-201",
+        "ECP-201",
+        "MMP-201"
+      ],
+      "lunch_period": 5,
+      "teacher_map": {},
+      "parent_class": "CSE B",
+      "parent_batch": "CSE B",
+      "sub_index": 1,
+      "semester": 3
+    },
+    {
+      "name": "CSE B2",
+      "strength": 30,
+      "subjects": [
+        "AIP-211",
+        "CSP-201",
+        "ECP-201",
+        "MMP-201"
+      ],
+      "lunch_period": 5,
+      "teacher_map": {},
+      "parent_class": "CSE B",
+      "parent_batch": "CSE B",
+      "sub_index": 2,
+      "semester": 3
+    },
+    {
+      "name": "CSE B3",
+      "strength": 30,
+      "subjects": [
+        "AIP-211",
+        "CSP-201",
+        "ECP-201",
+        "MMP-201"
+      ],
+      "lunch_period": 5,
+      "teacher_map": {},
+      "parent_class": "CSE B",
+      "parent_batch": "CSE B",
+      "sub_index": 3,
+      "semester": 3
+    },
+    {
+      "name": "AIDE D",
+      "strength": 60,
+      "subjects": [
+        "AIT-201",
+        "AIT-203",
+        "AIT-205",
+        "CST-207",
+        "MAT-201",
+        "HST-203"
+      ],
+      "lunch_period": 5,
+      "teacher_map": {},
+      "parent_class": null,
+      "parent_batch": "AIDE D",
+      "semester": 3
+    },
+    {
+      "name": "AIDE D1",
+      "strength": 30,
+      "subjects": [
+        "CSP-207",
+        "AIP-203",
+        "AIP-205",
+        "AIP-211"
+      ],
+      "lunch_period": 5,
+      "teacher_map": {},
+      "parent_class": "AIDE D",
+      "parent_batch": "AIDE D",
+      "sub_index": 1,
+      "semester": 3
+    },
+    {
+      "name": "AIDE D2",
+      "strength": 30,
+      "subjects": [
+        "CSP-207",
+        "AIP-203",
+        "AIP-205",
+        "AIP-211"
+      ],
+      "lunch_period": 5,
+      "teacher_map": {},
+      "parent_class": "AIDE D",
+      "parent_batch": "AIDE D",
+      "sub_index": 2,
+      "semester": 3
+    },
+    {
+      "name": "ECE C",
+      "strength": 90,
+      "subjects": [
+        "MAT-201",
+        "ECT-201",
+        "ECT-203",
+        "ECT-205",
+        "ECT-207",
+        "CST-241"
+      ],
+      "lunch_period": 5,
+      "teacher_map": {},
+      "parent_class": null,
+      "parent_batch": "ECE C",
+      "semester": 3
+    },
+    {
+      "name": "ECE C1",
+      "strength": 30,
+      "subjects": [
+        "AIP-211",
+        "ECP-201",
+        "MMP-201",
+        "ECP-203",
+        "CSP-241"
+      ],
+      "lunch_period": 5,
+      "teacher_map": {},
+      "parent_class": "ECE C",
+      "parent_batch": "ECE C",
+      "sub_index": 1,
+      "semester": 3
+    },
+    {
+      "name": "ECE C2",
+      "strength": 30,
+      "subjects": [
+        "AIP-211",
+        "ECP-201",
+        "MMP-201",
+        "ECP-203",
+        "CSP-241"
+      ],
+      "lunch_period": 5,
+      "teacher_map": {},
+      "parent_class": "ECE C",
+      "parent_batch": "ECE C",
+      "sub_index": 2,
+      "semester": 3
+    },
+    {
+      "name": "ECE C3",
+      "strength": 30,
+      "subjects": [
+        "AIP-211",
+        "ECP-201",
+        "MMP-201",
+        "ECP-203",
+        "CSP-241"
+      ],
+      "lunch_period": 5,
+      "teacher_map": {},
+      "parent_class": "ECE C",
+      "parent_batch": "ECE C",
+      "sub_index": 3,
+      "semester": 3
+    },
+    {
+      "name": "YEAR 1 -A",
+      "strength": 120,
+      "subjects": [
+        "MAT-103",
+        "AIT-101",
+        "ECT-101",
+        "HST-101",
+        "CST-101"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "parent_class": null,
+      "parent_batch": "YEAR 1 -A",
+      "semester": 1
+    },
+    {
+      "name": "YEAR 1 -A1",
+      "strength": 30,
+      "subjects": [
+        "CSP-101",
+        "AIP-111",
+        "ECP-101",
+        "HSP-101"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "parent_class": "YEAR 1 -A",
+      "parent_batch": "YEAR 1 -A",
+      "sub_index": 1,
+      "semester": 1
+    },
+    {
+      "name": "YEAR 1 -A2",
+      "strength": 30,
+      "subjects": [
+        "CSP-101",
+        "AIP-111",
+        "ECP-101",
+        "HSP-101"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "parent_class": "YEAR 1 -A",
+      "parent_batch": "YEAR 1 -A",
+      "sub_index": 2,
+      "semester": 1
+    },
+    {
+      "name": "YEAR 1 -A3",
+      "strength": 30,
+      "subjects": [
+        "CSP-101",
+        "AIP-111",
+        "ECP-101",
+        "HSP-101"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "parent_class": "YEAR 1 -A",
+      "parent_batch": "YEAR 1 -A",
+      "sub_index": 3,
+      "semester": 1
+    },
+    {
+      "name": "YEAR 1 -A4",
+      "strength": 30,
+      "subjects": [
+        "CSP-101",
+        "AIP-111",
+        "ECP-101",
+        "HSP-101"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "parent_class": "YEAR 1 -A",
+      "parent_batch": "YEAR 1 -A",
+      "sub_index": 4,
+      "semester": 1
+    },
+    {
+      "name": "YEAR 1 -B",
+      "strength": 120,
+      "subjects": [
+        "MAT-103",
+        "AIT-101",
+        "ECT-101",
+        "HST-101",
+        "CST-101"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "parent_class": null,
+      "parent_batch": "YEAR 1 -B",
+      "semester": 1
+    },
+    {
+      "name": "YEAR 1 -B1",
+      "strength": 30,
+      "subjects": [
+        "CSP-101",
+        "AIP-111",
+        "ECP-101",
+        "HSP-101"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "parent_class": "YEAR 1 -B",
+      "parent_batch": "YEAR 1 -B",
+      "sub_index": 1,
+      "semester": 1
+    },
+    {
+      "name": "YEAR 1 -B2",
+      "strength": 30,
+      "subjects": [
+        "CSP-101",
+        "AIP-111",
+        "ECP-101",
+        "HSP-101"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "parent_class": "YEAR 1 -B",
+      "parent_batch": "YEAR 1 -B",
+      "sub_index": 2,
+      "semester": 1
+    },
+    {
+      "name": "YEAR 1 -B3",
+      "strength": 30,
+      "subjects": [
+        "CSP-101",
+        "AIP-111",
+        "ECP-101",
+        "HSP-101"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "parent_class": "YEAR 1 -B",
+      "parent_batch": "YEAR 1 -B",
+      "sub_index": 3,
+      "semester": 1
+    },
+    {
+      "name": "YEAR 1 -B4",
+      "strength": 30,
+      "subjects": [
+        "CSP-101",
+        "AIP-111",
+        "ECP-101",
+        "HSP-101"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "parent_class": "YEAR 1 -B",
+      "parent_batch": "YEAR 1 -B",
+      "sub_index": 4,
+      "semester": 1
+    },
+    {
+      "name": "YEAR 1 -C",
+      "strength": 90,
+      "subjects": [
+        "MAT-103",
+        "AIT-101",
+        "ECT-101",
+        "HST-101",
+        "CST-101"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "parent_class": null,
+      "parent_batch": "YEAR 1 -C",
+      "semester": 1
+    },
+    {
+      "name": "YEAR 1 -C1",
+      "strength": 30,
+      "subjects": [
+        "CSP-101",
+        "AIP-111",
+        "ECP-101",
+        "HSP-101"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "parent_class": "YEAR 1 -C",
+      "parent_batch": "YEAR 1 -C",
+      "sub_index": 1,
+      "semester": 1
+    },
+    {
+      "name": "YEAR 1 -C2",
+      "strength": 30,
+      "subjects": [
+        "CSP-101",
+        "AIP-111",
+        "ECP-101",
+        "HSP-101"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "parent_class": "YEAR 1 -C",
+      "parent_batch": "YEAR 1 -C",
+      "sub_index": 2,
+      "semester": 1
+    },
+    {
+      "name": "YEAR 1 -C3",
+      "strength": 30,
+      "subjects": [
+        "CSP-101",
+        "AIP-111",
+        "ECP-101",
+        "HSP-101"
+      ],
+      "lunch_period": 4,
+      "teacher_map": {},
+      "parent_class": "YEAR 1 -C",
+      "parent_batch": "YEAR 1 -C",
+      "sub_index": 3,
+      "semester": 1
+    }
+  ]
+}

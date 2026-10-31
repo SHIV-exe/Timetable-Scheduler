@@ -39,7 +39,7 @@ class Budget:
             raise Timeout()
 
 
-def clash(s: Any, a: Tuple[int, int, str], t: Any, b: Tuple[int, int, str]) -> bool:
+def clash(s: Any, a: Tuple[int, int, str], t: Any, b: Tuple[int, int, str], data: Optional[Any] = None) -> bool:
     """Return True if session s at value a and session t at value b violate H1, H2, or H3."""
     # a and b are (day, start_period, room)
     if a[0] != b[0]:
@@ -47,8 +47,28 @@ def clash(s: Any, a: Tuple[int, int, str], t: Any, b: Tuple[int, int, str]) -> b
     # Check half-open interval overlap [start, start + length)
     if not (a[1] < b[1] + t.length and b[1] < a[1] + s.length):
         return False  # Periods do not overlap
-    # Overlap occurs: check if they share teacher (H1), class (H2), or room (H3)
-    return s.teacher == t.teacher or s.cls == t.cls or a[2] == b[2]
+    # H1: Teacher clash
+    if s.teacher == t.teacher:
+        return True
+    # H2: Cohort clash (same class or parent/child cohort)
+    if s.cls == t.cls:
+        return True
+    s_parent = getattr(s, "parent_cls", None)
+    t_parent = getattr(t, "parent_cls", None)
+    if (s_parent and s_parent == t.cls) or (t_parent and t_parent == s.cls):
+        return True
+    # H3: Room clash
+    if a[2] == b[2]:
+        room_name = a[2]
+        if data and hasattr(data, "rooms") and room_name in data.rooms:
+            room = data.rooms[room_name]
+            if room.kind == "lab" and s.kind == "lab" and t.kind == "lab":
+                s_str = data.classes[s.cls].strength if (hasattr(data, "classes") and s.cls in data.classes) else 30
+                t_str = data.classes[t.cls].strength if (hasattr(data, "classes") and t.cls in data.classes) else 30
+                if s_str + t_str <= room.capacity:
+                    return False  # Can share lab room if combined capacity fits
+        return True
+    return False
 
 
 def order_clash(s: Any, a: Tuple[int, int, str], t: Any, b: Tuple[int, int, str]) -> bool:
@@ -114,6 +134,7 @@ class BTSolver:
         node_limit: int = 500_000,
         time_limit: float = 60.0,
         rng: Optional[random.Random] = None,
+        data: Optional[Any] = None,
     ):
         self.sessions = sessions
         self.order = [s.sid for s in sessions]
@@ -130,20 +151,26 @@ class BTSolver:
         self.node_limit = node_limit
         self.deadline = time.time() + time_limit
         self.rng = rng
+        self.data = data
 
-        # Precompute neighbors sharing teacher, class, or possible room conflicts
+        # Precompute neighbors sharing teacher, class, cohort, or possible room conflicts
         self.nb = {
             s.sid: {
                 t.sid
                 for t in sessions
-                if t.sid != s.sid and (t.teacher == s.teacher or t.cls == s.cls)
+                if t.sid != s.sid and (
+                    t.teacher == s.teacher
+                    or t.cls == s.cls
+                    or (getattr(s, "parent_cls", None) and getattr(s, "parent_cls", None) == t.cls)
+                    or (getattr(t, "parent_cls", None) and getattr(t, "parent_cls", None) == s.cls)
+                )
             }
             for s in sessions
         }
 
     def bad(self, s: Any, a: Tuple[int, int, str], t: Any, b: Tuple[int, int, str]) -> bool:
         """Check clash constraint and symmetry breaking."""
-        return clash(s, a, t, b) or (self.sym and order_clash(s, a, t, b))
+        return clash(s, a, t, b, data=self.data) or (self.sym and order_clash(s, a, t, b))
 
     def select(self) -> Any:
         """Variable ordering heuristic (MRV with Degree tie-breaking)."""

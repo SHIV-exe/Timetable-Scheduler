@@ -15,6 +15,7 @@ class Subject:
     name: str
     hours: int
     kind: str  # 'theory' | 'lab'
+    room_type: Optional[str] = None  # 'lab' | 'tutorial_room' | 'classroom' | 'lecture_theatre'
 
 
 @dataclass
@@ -33,13 +34,14 @@ class SchoolClass:
     subjects: List[str]  # subject codes
     lunch_period: int  # period index, free on every day
     teacher_map: Dict[str, str] = field(default_factory=dict)  # optional {subject_code: teacher_name}
+    parent_class: Optional[str] = None  # parent batch if this is a sub-batch
 
 
 @dataclass
 class Room:
     name: str
     capacity: int
-    kind: str  # 'classroom' | 'lab'
+    kind: str  # 'classroom' | 'lab' | 'tutorial_room' | 'lecture_theatre'
 
 
 @dataclass
@@ -64,6 +66,7 @@ class Session:
     kind: str  # 'theory' | 'lab'
     length: int  # periods occupied: 1 for theory, lab_block for lab
     idx: int  # k-th session of this subject for this class
+    parent_cls: Optional[str] = None
 
 
 def validate_raw_data(raw: Dict[str, Any]) -> List[str]:
@@ -137,6 +140,10 @@ def validate_raw_data(raw: Dict[str, Any]) -> List[str]:
 
         if kind not in ("theory", "lab"):
             errors.append(f"Subject '{code}' type must be 'theory' or 'lab', got '{kind}'.")
+
+        rtype_req = s.get("room_type")
+        if rtype_req and rtype_req not in ("lab", "tutorial_room", "classroom", "lecture_theatre"):
+            errors.append(f"Subject '{code}' room_type must be 'lab', 'tutorial_room', 'classroom', or 'lecture_theatre', got '{rtype_req}'.")
 
     # 3. Check rooms
     raw_rooms = raw.get("rooms", [])
@@ -287,17 +294,32 @@ def validate_raw_data(raw: Dict[str, Any]) -> List[str]:
             and r.get("capacity", 0) >= strength
             for r in raw_rooms
         )
+        has_tutorial = any(
+            str(r.get("type", "")).strip().lower().replace(" ", "_") in ("tutorial_room", "classroom", "lecture_theatre")
+            and r.get("capacity", 0) >= strength
+            for r in raw_rooms
+        )
+
         # Check if class takes theory and lab
         needs_theory = any(
             s.get("type") == "theory" for s in raw_subjects if s.get("code") in csubjects
         )
+        # Dedicated lab needed only if subject requires 'lab' room type (default)
         needs_lab = any(
-            s.get("type") == "lab" for s in raw_subjects if s.get("code") in csubjects
+            s.get("type") == "lab" and s.get("room_type", "lab") == "lab"
+            for s in raw_subjects if s.get("code") in csubjects
         )
+        needs_tutorial_lab = any(
+            s.get("type") == "lab" and s.get("room_type") in ("tutorial_room", "classroom")
+            for s in raw_subjects if s.get("code") in csubjects
+        )
+
         if needs_theory and not has_classroom:
             errors.append(f"Class '{cname}' (strength {strength}) has no classroom large enough.")
         if needs_lab and not has_lab:
             errors.append(f"Class '{cname}' (strength {strength}) has no lab large enough.")
+        if needs_tutorial_lab and not has_tutorial:
+            errors.append(f"Class '{cname}' (strength {strength}) has no tutorial room or classroom large enough for practical sessions.")
 
     return errors
 
@@ -321,6 +343,7 @@ def load_from_dict(raw: Dict[str, Any]) -> Data:
             name=s["name"],
             hours=int(s["hours"]),
             kind=s.get("type", "theory"),
+            room_type=s.get("room_type"),
         )
 
     rooms = {}
@@ -352,12 +375,17 @@ def load_from_dict(raw: Dict[str, Any]) -> Data:
 
     classes = {}
     for c in raw["classes"]:
+        p_cls = c.get("parent_class")
+        if not p_cls and c.get("parent_batch") and c.get("parent_batch") != c.get("name"):
+            p_cls = c.get("parent_batch")
+
         classes[c["name"]] = SchoolClass(
             name=c["name"],
             strength=int(c["strength"]),
             subjects=list(c["subjects"]),
             lunch_period=int(c["lunch_period"]) - 1,
             teacher_map=dict(c.get("teacher_map", {})),
+            parent_class=p_cls,
         )
 
     period_slots = list(time_info.get("period_slots", []))
@@ -599,6 +627,7 @@ def build_sessions(data: Data, teacher_of: Dict[Tuple[str, str], str]) -> List[S
                         kind=sub.kind,
                         length=length,
                         idx=k,
+                        parent_cls=c.parent_class,
                     )
                 )
     return sessions
@@ -610,7 +639,7 @@ def build_domains(data: Data, sessions: List[Session]) -> Dict[int, List[Tuple[i
     A value is a triple (day, start_period, room).
     Filters unary constraints:
     - H4: Room capacity >= class strength
-    - H5: Labs in lab rooms, theory in classrooms
+    - H5: Labs in lab rooms (or tutorial rooms/classrooms if configured), theory in classrooms
     - H6: Teacher only in available slots
     - H9: Breaks and class lunch periods free
     """
@@ -618,10 +647,19 @@ def build_domains(data: Data, sessions: List[Session]) -> Dict[int, List[Tuple[i
     for s in sessions:
         c = data.classes[s.cls]
         t = data.teachers[s.teacher]
-        need_lab = (s.kind == "lab")
+        sub = data.subjects[s.subject]
+        
+        target_room_type = sub.room_type if sub.room_type else ("lab" if s.kind == "lab" else "classroom")
+        if target_room_type == "lab":
+            allowed_room_kinds = ("lab",)
+        elif target_room_type == "tutorial_room":
+            allowed_room_kinds = ("tutorial_room", "classroom")
+        else:
+            allowed_room_kinds = ("classroom", "lecture_theatre", "tutorial_room")
+
         rooms = [
             r.name for r in data.rooms.values()
-            if (r.kind == "lab" if need_lab else r.kind in ("classroom", "lecture_theatre", "tutorial_room"))
+            if r.kind in allowed_room_kinds
             and r.capacity >= c.strength
         ]
 

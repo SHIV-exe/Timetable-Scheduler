@@ -5,7 +5,7 @@
  */
 
 // LocalStorage Persistence Key
-const STORAGE_KEY = 'AI_TIMETABLE_CUSTOM_DATA_V2';
+const STORAGE_KEY = 'AI_TIMETABLE_CUSTOM_DATA_V3';
 
 // Application State
 const state = {
@@ -19,6 +19,8 @@ const state = {
   currentPerspective: 'class',
   selectedEntity: '',
   activeTab: 'tab-data',
+  activeBenchmarkFilter: 'all',
+  benchmarkData: null,
 };
 
 // DOM Elements
@@ -28,6 +30,7 @@ const elements = {
   globalNotice: document.getElementById('global-notice'),
   btnLoadSmall: document.getElementById('btn-load-small'),
   btnLoadLarge: document.getElementById('btn-load-large'),
+  btnLoadInstitutional: document.getElementById('btn-load-institutional'),
   btnDownloadTpl: document.getElementById('btn-download-tpl'),
   jsonFileInput: document.getElementById('json-file-input'),
   loadedBadge: document.getElementById('loaded-dataset-badge'),
@@ -72,7 +75,13 @@ const elements = {
   btnExportCsv: document.getElementById('btn-export-csv'),
   btnExportJson: document.getElementById('btn-export-json'),
   btnPrintMatrix: document.getElementById('btn-print-matrix'),
+  btnPrintCurrentView: document.getElementById('btn-print-current-view'),
+  btnExportHtml: document.getElementById('btn-export-html'),
   benchmarkContainer: document.getElementById('benchmark-tables-container'),
+  btnRunLiveBenchmark: document.getElementById('btn-run-live-benchmark'),
+  benchSelectDataset: document.getElementById('bench-select-dataset'),
+  benchSelectTimeout: document.getElementById('bench-select-timeout'),
+  benchmarkFilterTabs: document.querySelectorAll('.benchmark-tab-btn'),
 
   // Form Studio Buttons
   btnAddBatch: document.getElementById('btn-add-batch'),
@@ -129,6 +138,8 @@ const elements = {
   subjectHours: document.getElementById('subject-hours'),
   subjectLabBlock: document.getElementById('subject-lab-block'),
   subjectLabBlockGroup: document.getElementById('subject-lab-block-group'),
+  subjectRoomVenueGroup: document.getElementById('subject-room-venue-group'),
+  subjectRoomType: document.getElementById('subject-room-type'),
 
   modalTime: document.getElementById('modal-time'),
   timeForm: document.getElementById('time-form'),
@@ -181,7 +192,6 @@ function generate9to5Slots(periodsCount = 8, lunchPeriod = 5) {
 function compileSolverData(custom) {
   const copy = JSON.parse(JSON.stringify(custom));
   const compiledClasses = [];
-  const LAB_CAPACITY = 90; // Lab capacity threshold for splitting batches
 
   for (const b of (copy.batches || [])) {
     const strength = parseInt(b.strength, 10) || 30;
@@ -189,11 +199,13 @@ function compileSolverData(custom) {
     const labSubjects = b.labs || [];
     const lunchPeriod = parseInt(b.lunch_period, 10) || 4;
 
-    // Split labs only when batch strength is exactly 120.
-    // Theory lectures stay in a single parent class of full strength.
-    if (b.auto_split !== false && labSubjects.length > 0 && strength === 120) {
-      const k = 2; // Always two sub-batches of 60
-      // Parent class for theory (full batch)
+    // Split batches into sections of 30 for labs whenever batch strength > 30 and batch has lab courses.
+    // Theory lectures are always conducted together for the full cohort (e.g. 120, 90, 60 students).
+    if (b.auto_split !== false && labSubjects.length > 0 && strength > 30) {
+      const k = Math.ceil(strength / 30);
+      const subStrength = Math.min(30, Math.ceil(strength / k));
+
+      // 1. Parent class for theory lectures (full unified batch)
       if (theorySubjects.length > 0) {
         compiledClasses.push({
           name: b.name,
@@ -201,26 +213,28 @@ function compileSolverData(custom) {
           subjects: theorySubjects,
           lunch_period: lunchPeriod,
           teacher_map: b.teacher_map || {},
+          parent_class: null,
           parent_batch: b.name,
           semester: b.semester
         });
       }
-      // Sub‑batches for labs, each size <= LAB_CAPACITY (distributed evenly)
+
+      // 2. Sub-batches for practical labs (divided into sections of 30: A1, A2, A3, A4)
       for (let i = 1; i <= k; i++) {
-        const subStrength = 60; // Each sub-batch is half of 120
         compiledClasses.push({
           name: `${b.name}${i}`,
           strength: subStrength,
           subjects: labSubjects,
           lunch_period: lunchPeriod,
           teacher_map: b.teacher_map || {},
+          parent_class: b.name,
           parent_batch: b.name,
           sub_index: i,
           semester: b.semester
         });
       }
     } else {
-      // No split needed (strength ≤ LAB_CAPACITY or no labs): single cohort gets all subjects
+      // Single unified cohort (strength <= 30 or no labs)
       const allSubjects = [...theorySubjects, ...labSubjects];
       compiledClasses.push({
         name: b.name,
@@ -228,6 +242,8 @@ function compileSolverData(custom) {
         subjects: allSubjects,
         lunch_period: lunchPeriod,
         teacher_map: b.teacher_map || {},
+        parent_class: null,
+        parent_batch: b.name,
         semester: b.semester
       });
     }
@@ -241,60 +257,78 @@ function compileSolverData(custom) {
 // Default Institutional Template
 // =============================================================================
 function createDefaultCustomData() {
-  const periodSlots = generate9to5Slots(8, 5); // 8 periods, 9:00 AM - 5:00 PM, Lunch at P5 (1:00 PM - 2:00 PM)
+  const periodSlots = generate9to5Slots(7, 4); // 7 periods, 9:00 AM - 4:00 PM, Lunch at P4 (12:00 PM - 1:00 PM)
   return {
     time: {
       days: ["Mon", "Tue", "Wed", "Thu", "Fri"],
-      periods_per_day: 8,
+      periods_per_day: 7,
       break_periods: [],
       lab_block: 2,
       period_slots: periodSlots,
     },
     subjects: [
       { code: "CS101", name: "Programming Foundations", hours: 4, type: "theory" },
-      { code: "CS102", name: "Data Structures", hours: 4, type: "theory" },
-      { code: "MATH1", name: "Discrete Mathematics", hours: 3, type: "theory" },
-      { code: "CS101P", name: "Programming Lab", hours: 2, type: "lab" },
-      { code: "CS102P", name: "Data Structures Lab", hours: 2, type: "lab" },
-      { code: "AI301", name: "Artificial Intelligence", hours: 4, type: "theory" },
-      { code: "AI301P", name: "AI & Machine Learning Lab", hours: 2, type: "lab" }
+      { code: "CS102", name: "Data Structures & Algorithms", hours: 4, type: "theory" },
+      { code: "MATH1", name: "Discrete Mathematics", hours: 4, type: "theory" },
+      { code: "CS101P", name: "Programming Lab", hours: 2, type: "lab", room_type: "lab" },
+      { code: "CS102P", name: "Data Structures Lab", hours: 2, type: "lab", room_type: "lab" },
+      { code: "COMM1", name: "Communication Skills Lab", hours: 2, type: "lab", room_type: "tutorial_room" },
+      { code: "MGMT1", name: "Management Practice Lab", hours: 2, type: "lab", room_type: "classroom" }
     ],
     rooms: [
-      { name: "LT-101", capacity: 150, type: "lecture_theatre" },
-      { name: "TR-201", capacity: 60, type: "tutorial_room" },
-      { name: "CR-102", capacity: 60, type: "classroom" },
-      { name: "CR-103", capacity: 60, type: "classroom" },
-      { name: "Lab-A", capacity: 30, type: "lab" },
-      { name: "Lab-B", capacity: 30, type: "lab" },
-      { name: "Lab-C", capacity: 30, type: "lab" }
+      { name: "LT-1", capacity: 150, type: "lecture_theatre" },
+      { name: "LT-2", capacity: 120, type: "lecture_theatre" },
+      { name: "Hall-101", capacity: 100, type: "classroom" },
+      { name: "Hall-102", capacity: 70, type: "classroom" },
+      { name: "TR-101", capacity: 40, type: "tutorial_room" },
+      { name: "Computing-Lab-1", capacity: 90, type: "lab" },
+      { name: "Software-Lab-2", capacity: 60, type: "lab" },
+      { name: "Hardware-Lab-3", capacity: 36, type: "lab" },
+      { name: "Systems-Lab-4", capacity: 60, type: "lab" }
     ],
     teachers: [
-      { name: "Dr. Alan Turing", subjects: ["CS101", "CS101P", "AI301", "AI301P"], max_load: 18, unavailable: [["Mon", 1]], avoid_periods: [1] },
-      { name: "Prof. Ada Lovelace", subjects: ["CS102", "CS102P", "MATH1"], max_load: 18, unavailable: [["Fri", 7]], avoid_periods: [7] },
-      { name: "Dr. Claude Shannon", subjects: ["CS101", "CS101P", "MATH1"], max_load: 16, unavailable: [], avoid_periods: [2] },
-      { name: "Prof. Grace Hopper", subjects: ["CS102", "CS102P", "AI301", "AI301P"], max_load: 18, unavailable: [], avoid_periods: [] }
+      { name: "Prof. Donald Knuth", subjects: ["CS101", "CS101P", "CS102"], max_load: 18, unavailable: [["Mon", 1]], avoid_periods: [1] },
+      { name: "Prof. Edsger Dijkstra", subjects: ["CS102", "CS102P", "MATH1"], max_load: 18, unavailable: [["Tue", 7]], avoid_periods: [7] },
+      { name: "Dr. Barbara Liskov", subjects: ["CS101", "CS101P", "COMM1"], max_load: 18, unavailable: [["Wed", 1]], avoid_periods: [1] },
+      { name: "Dr. Edgar Codd", subjects: ["CS102", "CS102P", "MGMT1"], max_load: 18, unavailable: [["Thu", 7]], avoid_periods: [7] },
+      { name: "Dr. Grace Hopper", subjects: ["CS101", "CS101P", "COMM1"], max_load: 18, unavailable: [["Tue", 1]], avoid_periods: [1] },
+      { name: "Prof. John Hopcroft", subjects: ["CS102", "COMM1"], max_load: 18, unavailable: [["Fri", 7]], avoid_periods: [7] },
+      { name: "Prof. Jeffrey Ullman", subjects: ["MATH1", "MGMT1"], max_load: 18, unavailable: [["Mon", 2]], avoid_periods: [2] },
+      { name: "Dr. Radia Perlman", subjects: ["CS101", "CS101P", "COMM1"], max_load: 18, unavailable: [["Wed", 2]], avoid_periods: [2] },
+      { name: "Prof. Robert Tarjan", subjects: ["CS101", "CS102", "MATH1"], max_load: 18, unavailable: [["Thu", 6]], avoid_periods: [6] },
     ],
     batches: [
       {
-        name: "CSE-A",
+        name: "Batch-A",
         semester: 3,
         sem_type: "odd",
-        strength: 120, // Will automatically divide into 4 lab sub-batches: CSE-A1, CSE-A2, CSE-A3, CSE-A4
+        strength: 120, // Will automatically divide into 4 lab sub-batches (A1, A2, A3, A4 x 30)
         auto_split: true,
-        lunch_period: 5, // Sem 3+ → 1:00 PM - 2:00 PM
+        lunch_period: 4,
         subjects: ["CS101", "CS102", "MATH1"],
+        labs: ["CS101P", "COMM1"],
+        teacher_map: {}
+      },
+      {
+        name: "Batch-B",
+        semester: 3,
+        sem_type: "odd",
+        strength: 90, // Will automatically divide into 3 lab sub-batches (B1, B2, B3 x 30)
+        auto_split: true,
+        lunch_period: 4,
+        subjects: ["CS101", "CS102"],
         labs: ["CS101P", "CS102P"],
         teacher_map: {}
       },
       {
-        name: "AI-1",
-        semester: 1,
+        name: "Batch-C",
+        semester: 3,
         sem_type: "odd",
-        strength: 60, // Will automatically divide into 2 lab sub-batches: AI-11, AI-12
+        strength: 60, // Will automatically divide into 2 lab sub-batches (C1, C2 x 30)
         auto_split: true,
-        lunch_period: 4, // Sem 1 & 2 → 12:00 PM - 1:00 PM
-        subjects: ["CS101", "AI301"],
-        labs: ["AI301P"],
+        lunch_period: 4,
+        subjects: ["CS101", "MATH1"],
+        labs: ["CS102P", "MGMT1"],
         teacher_map: {}
       }
     ]
@@ -358,6 +392,9 @@ function setupEventListeners() {
   // Preset buttons
   elements.btnLoadSmall.addEventListener('click', () => loadPresetDataset('small'));
   elements.btnLoadLarge.addEventListener('click', () => loadPresetDataset('large'));
+  if (elements.btnLoadInstitutional) {
+    elements.btnLoadInstitutional.addEventListener('click', () => loadPresetDataset('institutional'));
+  }
   elements.btnDownloadTpl.addEventListener('click', () => downloadTemplate());
   elements.btnResetCustom.addEventListener('click', resetCustomStudioData);
   elements.btnSaveDisk.addEventListener('click', saveCustomDataToDisk);
@@ -400,9 +437,82 @@ function setupEventListeners() {
   // Exports
   elements.btnExportCsv.addEventListener('click', exportCsv);
   elements.btnExportJson.addEventListener('click', exportJson);
+  if (elements.btnExportHtml) {
+    elements.btnExportHtml.addEventListener('click', exportHtmlReport);
+  }
   if (elements.btnPrintMatrix) {
     elements.btnPrintMatrix.addEventListener('click', handlePrintMatrix);
   }
+  if (elements.btnPrintCurrentView) {
+    elements.btnPrintCurrentView.addEventListener('click', handlePrintMatrix);
+  }
+
+  // Live Benchmarks
+  if (elements.btnRunLiveBenchmark) {
+    elements.btnRunLiveBenchmark.addEventListener('click', handleRunLiveBenchmark);
+  }
+  if (elements.benchmarkFilterTabs) {
+    elements.benchmarkFilterTabs.forEach(btn => {
+      btn.addEventListener('click', () => {
+        elements.benchmarkFilterTabs.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.activeBenchmarkFilter = btn.dataset.filter || 'all';
+        renderAllBenchmarkViews();
+      });
+    });
+  }
+}
+
+function mergeSubBatchesIfPresent(customData) {
+  if (!customData || !customData.batches || customData.batches.length === 0) return customData;
+
+  const pattern = /^([A-Za-z_-]+?)(\d+)$/;
+  const groups = {};
+  for (const b of customData.batches) {
+    const match = b.name.match(pattern);
+    if (match && (parseInt(b.strength, 10) || 30) <= 35) {
+      const base = match[1];
+      if (!groups[base]) groups[base] = [];
+      groups[base].push(b);
+    }
+  }
+
+  let hasMerged = false;
+  const newBatches = [];
+  const handledBases = new Set();
+
+  for (const b of customData.batches) {
+    const match = b.name.match(pattern);
+    if (match && groups[match[1]] && groups[match[1]].length > 1) {
+      const base = match[1];
+      if (!handledBases.has(base)) {
+        handledBases.add(base);
+        hasMerged = true;
+        const subList = groups[base];
+        const totalStrength = subList.reduce((sum, item) => sum + (parseInt(item.strength, 10) || 30), 0);
+        const allTheory = Array.from(new Set(subList.flatMap(item => item.subjects || [])));
+        const allLabs = Array.from(new Set(subList.flatMap(item => item.labs || [])));
+        newBatches.push({
+          name: base.startsWith('Batch-') ? base : `Batch-${base}`,
+          semester: subList[0].semester || 3,
+          sem_type: subList[0].sem_type || 'odd',
+          strength: totalStrength,
+          auto_split: true,
+          lunch_period: subList[0].lunch_period || 4,
+          subjects: allTheory,
+          labs: allLabs,
+          teacher_map: subList[0].teacher_map || {}
+        });
+      }
+    } else {
+      newBatches.push(b);
+    }
+  }
+
+  if (hasMerged) {
+    customData.batches = newBatches;
+  }
+  return customData;
 }
 
 // =============================================================================
@@ -414,17 +524,18 @@ async function initializeCustomStudio() {
   if (stored) {
     try {
       state.customData = JSON.parse(stored);
-      showNotice('Restored your saved institutional configuration from local storage.', 'blue');
+      state.customData = mergeSubBatchesIfPresent(state.customData);
+      showNotice('Restored your institutional configuration from local storage.', 'blue');
     } catch (e) {
       state.customData = createDefaultCustomData();
     }
   } else {
-    // Check if custom.json exists on server
+    // Fetch custom.json from server
     try {
       const res = await fetch('/api/dataset/custom');
       if (res.ok) {
         const serverData = await res.json();
-        if (serverData && serverData.classes) {
+        if (serverData && serverData.batches && serverData.batches.length > 0) {
           state.customData = serverData;
         } else {
           state.customData = createDefaultCustomData();
@@ -436,6 +547,8 @@ async function initializeCustomStudio() {
       state.customData = createDefaultCustomData();
     }
   }
+
+  state.customData = mergeSubBatchesIfPresent(state.customData);
 
   // Upgrade to 8 periods (9 AM - 5 PM) if currently < 8
   if (state.customData && state.customData.time && (state.customData.time.periods_per_day || 0) < 8) {
@@ -740,7 +853,10 @@ function renderSubjectsTable() {
           <tr>
             <td><code style="font-family:var(--font-mono); font-size:0.85rem; font-weight:600;">${escapeHtml(s.code)}</code></td>
             <td><strong>${escapeHtml(s.name)}</strong></td>
-            <td><span class="badge ${s.type === 'lab' ? 'badge-blue' : 'badge-green'}">${s.type === 'lab' ? 'Practical Lab' : 'Theory'}</span></td>
+            <td>
+              <span class="badge ${s.type === 'lab' ? 'badge-blue' : 'badge-green'}">${s.type === 'lab' ? 'Practical Lab' : 'Theory'}</span>
+              ${s.type === 'lab' && s.room_type && s.room_type !== 'lab' ? `<span class="badge badge-yellow" style="margin-left:4px;">${s.room_type === 'tutorial_room' ? 'Tutorial Room' : 'Classroom'}</span>` : ''}
+            </td>
             <td>${s.hours} hrs/wk</td>
             <td style="text-align: right;">
               <button type="button" class="btn-table-action" onclick="window.editSubjectItem('${escapeHtml(s.code)}')">Edit</button>
@@ -816,9 +932,11 @@ function setupModalHandlers() {
   // Subject Form format toggle
   elements.subjectTypeTheory.addEventListener('change', () => {
     elements.subjectLabBlockGroup.style.display = 'none';
+    if (elements.subjectRoomVenueGroup) elements.subjectRoomVenueGroup.style.display = 'none';
   });
   elements.subjectTypeLab.addEventListener('change', () => {
     elements.subjectLabBlockGroup.style.display = 'block';
+    if (elements.subjectRoomVenueGroup) elements.subjectRoomVenueGroup.style.display = 'block';
   });
 
   // Time Form periods count change
@@ -1301,9 +1419,13 @@ function openSubjectModal(existingCode = null) {
   if (isLab) {
     elements.subjectTypeLab.checked = true;
     elements.subjectLabBlockGroup.style.display = 'block';
+    if (elements.subjectRoomVenueGroup) elements.subjectRoomVenueGroup.style.display = 'block';
+    if (elements.subjectRoomType) elements.subjectRoomType.value = subject.room_type || 'lab';
   } else {
     elements.subjectTypeTheory.checked = true;
     elements.subjectLabBlockGroup.style.display = 'none';
+    if (elements.subjectRoomVenueGroup) elements.subjectRoomVenueGroup.style.display = 'none';
+    if (elements.subjectRoomType) elements.subjectRoomType.value = 'lab';
   }
   elements.subjectHours.value = subject ? subject.hours : 4;
   elements.subjectLabBlock.value = state.customData.time.lab_block || 2;
@@ -1318,6 +1440,8 @@ function handleSubjectFormSubmit(e) {
   const name = elements.subjectName.value.trim();
   const type = elements.subjectTypeLab.checked ? 'lab' : 'theory';
   const hours = parseInt(elements.subjectHours.value, 10) || 4;
+  const roomTypeVal = (elements.subjectRoomType && elements.subjectRoomType.value) ? elements.subjectRoomType.value : 'lab';
+  const room_type = (type === 'lab') ? roomTypeVal : undefined;
 
   if (!code || !name) {
     alert('Please provide course code and title.');
@@ -1337,7 +1461,7 @@ function handleSubjectFormSubmit(e) {
     }
   }
 
-  const subjectObj = { code, name, type, hours };
+  const subjectObj = { code, name, type, hours, ...(room_type ? { room_type } : {}) };
 
   if (originalCode) {
     const idx = state.customData.subjects.findIndex(s => s.code === originalCode);
@@ -1447,6 +1571,49 @@ function handleTimeFormSubmit(e) {
 // =============================================================================
 // Standard Preset Loading
 // =============================================================================
+function extractBatchesFromRaw(raw) {
+  if (raw.batches && Array.isArray(raw.batches) && raw.batches.length > 0) {
+    return raw.batches;
+  }
+  if (!raw.classes || !Array.isArray(raw.classes)) {
+    return [];
+  }
+  // Group sectional classes (e.g. CSE A1, CSE A2, CSE A3) into parent batches
+  const batchMap = new Map();
+  for (const c of raw.classes) {
+    const parentName = c.parent_batch || c.parent_class || (c.sub_index ? c.name.replace(/\d+$/, '').trim() : c.name);
+    if (!batchMap.has(parentName)) {
+      batchMap.set(parentName, {
+        name: parentName,
+        semester: c.semester || 1,
+        sem_type: c.sem_type || 'odd',
+        strength: 0,
+        auto_split: true,
+        lunch_period: c.lunch_period !== undefined ? c.lunch_period : 4,
+        subjects: new Set(),
+        labs: new Set(),
+        teacher_map: {}
+      });
+    }
+    const b = batchMap.get(parentName);
+    b.strength += (parseInt(c.strength, 10) || 30);
+    for (const sc of (c.subjects || [])) {
+      const sObj = (raw.subjects || []).find(s => s.code === sc);
+      if (sObj && sObj.type === 'lab') {
+        b.labs.add(sc);
+      } else {
+        b.subjects.add(sc);
+      }
+    }
+    Object.assign(b.teacher_map, c.teacher_map || {});
+  }
+  return Array.from(batchMap.values()).map(b => ({
+    ...b,
+    subjects: Array.from(b.subjects),
+    labs: Array.from(b.labs)
+  }));
+}
+
 async function loadPresetDataset(name) {
   try {
     showNotice(`Loading standard ${name} institutional preset...`, 'blue');
@@ -1455,7 +1622,7 @@ async function loadPresetDataset(name) {
     const raw = await res.json();
 
     // Convert raw to custom format
-    const periodSlots = generate9to5Slots(raw.time.periods_per_day, raw.classes[0]?.lunch_period || 4);
+    const periodSlots = raw.time?.period_slots || generate9to5Slots(raw.time.periods_per_day, raw.classes?.[0]?.lunch_period || 4);
     raw.time.period_slots = periodSlots;
 
     state.customData = {
@@ -1463,27 +1630,7 @@ async function loadPresetDataset(name) {
       subjects: raw.subjects,
       rooms: raw.rooms,
       teachers: raw.teachers,
-      batches: raw.classes.map(c => {
-        const theorySubs = c.subjects.filter(sc => {
-          const sObj = raw.subjects.find(s => s.code === sc);
-          return !sObj || sObj.type === 'theory';
-        });
-        const labSubs = c.subjects.filter(sc => {
-          const sObj = raw.subjects.find(s => s.code === sc);
-          return sObj && sObj.type === 'lab';
-        });
-        return {
-          name: c.name,
-          semester: 1,
-          sem_type: 'odd',
-          strength: c.strength,
-          auto_split: true,
-          lunch_period: c.lunch_period,
-          subjects: theorySubs,
-          labs: labSubs,
-          teacher_map: c.teacher_map || {}
-        };
-      })
+      batches: extractBatchesFromRaw(raw)
     };
 
     await applyCustomDataAndUpdateUI(true);
@@ -1512,7 +1659,7 @@ function handleFileUpload(e) {
 
       // Ensure period slots
       if (!parsed.time.period_slots) {
-        parsed.time.period_slots = generate9to5Slots(parsed.time.periods_per_day, parsed.classes[0]?.lunch_period || 5);
+        parsed.time.period_slots = generate9to5Slots(parsed.time.periods_per_day, parsed.classes?.[0]?.lunch_period || 5);
       }
 
       state.customData = {
@@ -1520,23 +1667,7 @@ function handleFileUpload(e) {
         subjects: parsed.subjects,
         rooms: parsed.rooms,
         teachers: parsed.teachers,
-        batches: parsed.classes.map(c => ({
-          name: c.name,
-          semester: c.semester || 1,
-          sem_type: c.sem_type || 'odd',
-          strength: c.strength,
-          auto_split: true,
-          lunch_period: c.lunch_period,
-          subjects: c.subjects.filter(sc => {
-            const sObj = parsed.subjects.find(s => s.code === sc);
-            return !sObj || sObj.type === 'theory';
-          }),
-          labs: c.subjects.filter(sc => {
-            const sObj = parsed.subjects.find(s => s.code === sc);
-            return sObj && sObj.type === 'lab';
-          }),
-          teacher_map: c.teacher_map || {}
-        }))
+        batches: extractBatchesFromRaw(parsed)
       };
 
       await applyCustomDataAndUpdateUI(true);
@@ -1687,7 +1818,15 @@ function updatePerspectiveDropdown() {
   const kind = state.currentPerspective;
   let items = [];
   if (kind === 'class') {
-    items = state.currentData.classes.map(c => c.name);
+    if (state.customData && state.customData.batches && state.customData.batches.length > 0) {
+      items = state.customData.batches.map(b => b.name);
+    } else {
+      const parentSet = new Set();
+      state.currentData.classes.forEach(c => {
+        parentSet.add(c.parent_class || c.parent_batch || c.name);
+      });
+      items = Array.from(parentSet);
+    }
   } else if (kind === 'teacher') {
     items = state.currentData.teachers.map(t => t.name);
   } else {
@@ -1701,37 +1840,61 @@ function updatePerspectiveDropdown() {
   state.selectedEntity = items[0] || '';
 }
 
-function renderTimetableMatrix() {
-  if (!state.currentData || Object.keys(state.asg).length === 0) {
-    elements.matrixContainer.innerHTML = `
-      <p style="color: var(--text-muted); font-size: 0.95rem; padding: 20px;">
-        No timetable generated yet. Execute search under the <strong>Algorithmic Search</strong> tab to build schedule matrices.
-      </p>
-    `;
-    elements.diagnosticsList.innerHTML = `<p style="color: var(--text-muted);">No active schedule.</p>`;
-    return;
+function isSessionConflicted(item, allCellItems, kind, entity) {
+  if (!item) return false;
+
+  // 1. Backend reported conflict SID
+  if (state.report && Array.isArray(state.report.conflicted_sids) && state.report.conflicted_sids.includes(item.sid)) {
+    return true;
   }
 
-  const data = state.currentData;
-  const sessions = state.sessions;
-  const asg = state.asg;
-  const kind = state.currentPerspective;
-  const entity = state.selectedEntity || elements.selectEntity.value;
+  // 2. Local clashing inside the cell
+  if (allCellItems && allCellItems.length > 1) {
+    for (const other of allCellItems) {
+      if (!other || other.sid === item.sid) continue;
 
-  elements.osWindowTitle.textContent = `${kind.toUpperCase()} MATRIX: ${entity}`;
+      // Teacher clash: same teacher assigned twice simultaneously
+      if (item.teacher && other.teacher && item.teacher === other.teacher) {
+        return true;
+      }
 
-  // Find class lunch period if viewing class
-  let classLunch = -1;
-  if (kind === 'class') {
-    const clsObj = data.classes.find(c => c.name === entity);
-    if (clsObj) classLunch = clsObj.lunch_period - 1; // 0-indexed
+      // Section clash: same class/section cannot be scheduled twice simultaneously
+      if (item.cls && other.cls && item.cls === other.cls) {
+        return true;
+      }
+
+      // Parent batch vs child section conflict (theory class while lab section runs)
+      if (item.parent_cls && other.cls && item.parent_cls === other.cls) return true;
+      if (other.parent_cls && item.cls && other.parent_cls === item.cls) return true;
+
+      // Room clash: if same room, verify if combined strength exceeds room capacity
+      if (item.room && other.room && item.room === other.room) {
+        const roomObj = (state.currentData?.rooms || []).find(r => r.name === item.room);
+        const roomCap = roomObj ? parseInt(roomObj.capacity, 10) : 30;
+        const cls1 = (state.currentData?.classes || []).find(c => c.name === item.cls);
+        const cls2 = (state.currentData?.classes || []).find(c => c.name === other.cls);
+        const str1 = cls1 ? parseInt(cls1.strength, 10) : 30;
+        const str2 = cls2 ? parseInt(cls2.strength, 10) : 30;
+        if (str1 + str2 > roomCap) {
+          return true;
+        }
+      }
+    }
   }
 
-  const breakSet = new Set((data.time.break_periods || []).map(b => b - 1));
-  const periodSlots = data.time.period_slots || [];
+  // 3. Teacher perspective: if teacher has multiple items in this slot
+  if (kind === 'teacher' && allCellItems && allCellItems.length > 1) {
+    return true;
+  }
 
-  // Build grid data structure: periods x days
-  const grid = Array.from({ length: data.time.periods_per_day }, () => Array(data.time.days.length).fill(null));
+  return false;
+}
+
+function buildScheduleMatrixTable(data, sessions, asg, kind, entity, periodSlots, breakSet, classLunch) {
+  // Build grid data structure: periods x days -> each slot holds an array of scheduled items
+  const grid = Array.from({ length: data.time.periods_per_day }, () =>
+    Array.from({ length: data.time.days.length }, () => [])
+  );
 
   for (const s of sessions) {
     const val = asg[s.sid];
@@ -1739,24 +1902,31 @@ function renderTimetableMatrix() {
     const [d, p, r] = val;
 
     let match = false;
-    if (kind === 'class' && s.cls === entity) match = true;
-    if (kind === 'teacher' && s.teacher === entity) match = true;
-    if (kind === 'room' && r === entity) match = true;
+    if (kind === 'class') {
+      const clsObj = data.classes.find(c => c.name === s.cls);
+      const parentName = s.parent_cls || (clsObj && (clsObj.parent_class || clsObj.parent_batch));
+      match = (s.cls === entity || parentName === entity || (s.cls && s.cls.startsWith(entity)));
+    } else if (kind === 'teacher') {
+      match = (s.teacher === entity);
+    } else if (kind === 'room') {
+      match = (r === entity);
+    }
 
     if (match) {
       for (let k = 0; k < s.length; k++) {
         const periodIdx = p + k;
         if (periodIdx >= 0 && periodIdx < data.time.periods_per_day) {
-          grid[periodIdx][d] = {
+          grid[periodIdx][d].push({
             subject: s.subject,
             teacher: s.teacher,
             cls: s.cls,
+            parent_cls: s.parent_cls,
             room: r,
             kind: s.kind,
             sid: s.sid,
             length: s.length,
             isStart: (k === 0),
-          };
+          });
         }
       }
     }
@@ -1795,38 +1965,173 @@ function renderTimetableMatrix() {
           continue;
         }
 
-        const item = grid[p][d];
-        if (item) {
-          const isLab = item.kind === 'lab';
-          const span = (item.isStart && item.length > 1) ? item.length : 1;
+        const rawItems = grid[p][d] || [];
+        if (rawItems.length > 0) {
+          const startItems = rawItems.filter(it => it.isStart && it.length > 1);
+          const maxSpan = startItems.length > 0 ? Math.max(...startItems.map(it => it.length)) : 1;
 
-          if (span > 1) {
-            for (let sp = 1; sp < span; sp++) {
+          // Collect all items starting at p or within the spanned block
+          const cellItemsMap = new Map();
+          for (const it of rawItems) {
+            if (it.isStart) cellItemsMap.set(it.sid, it);
+          }
+
+          if (maxSpan > 1) {
+            for (let sp = 1; sp < maxSpan; sp++) {
               if (p + sp < data.time.periods_per_day) {
                 skipGrid[p + sp][d] = true;
+                // Gather any session that started in this slot (e.g. overlapping / clashing)
+                for (const it of (grid[p + sp][d] || [])) {
+                  if (it.isStart && !cellItemsMap.has(it.sid)) {
+                    cellItemsMap.set(it.sid, it);
+                  }
+                }
               }
             }
           }
 
-          let subtitle = '';
-          if (kind === 'class') subtitle = `${item.teacher} · ${item.room}`;
-          else if (kind === 'teacher') subtitle = `${item.cls} · ${item.room}`;
-          else subtitle = `${item.cls} · ${item.teacher}`;
+          // Fallback if none had isStart
+          const allItems = cellItemsMap.size > 0 ? Array.from(cellItemsMap.values()) : rawItems;
+          const isSpanBlock = (maxSpan > 1);
+          const rowspanAttr = maxSpan > 1 ? ` rowspan="${maxSpan}"` : '';
+          const numCols = allItems.length;
 
-          const rowspanAttr = span > 1 ? ` rowspan="${span}"` : '';
-          const labBlockClass = (isLab && span > 1) ? 'slot-lab-block' : '';
+          if (isSpanBlock) {
+            // Lab block spanned over 2 (or more) rows!
+            // If multiple labs (e.g. clashing or parallel sections), divide cell into equal columns!
+            const colsHtml = allItems.map(item => {
+              const isLab = item.kind === 'lab';
+              const isClash = isSessionConflicted(item, allItems, kind, entity);
+              const secName = item.cls;
 
-          tableHtml += `
-            <td${rowspanAttr} class="${span > 1 ? 'cell-span-block' : ''}">
-              <div class="slot-occupied ${isLab ? 'slot-lab' : ''} ${labBlockClass}">
-                <div class="slot-subject">
-                  ${escapeHtml(item.subject)}
-                  ${span > 1 ? `<span class="consecutive-tag">${span}-Period Lab</span>` : ''}
+              let metaRows = '';
+              if (kind === 'class') {
+                metaRows = `
+                  <div class="lab-card-meta-row" title="Faculty: ${escapeHtml(item.teacher)}">
+                    <span class="lab-card-meta-label">Fac:</span>
+                    <span class="lab-card-meta-val">${escapeHtml(item.teacher)}</span>
+                  </div>
+                  <div class="lab-card-meta-row" title="Venue: ${escapeHtml(item.room)}">
+                    <span class="lab-card-meta-label">Venue:</span>
+                    <span class="lab-card-meta-val">${escapeHtml(item.room)}</span>
+                  </div>
+                `;
+              } else if (kind === 'teacher') {
+                metaRows = `
+                  <div class="lab-card-meta-row" title="Class: ${escapeHtml(item.cls)}">
+                    <span class="lab-card-meta-label">Class:</span>
+                    <span class="lab-card-meta-val">${escapeHtml(item.cls)}</span>
+                  </div>
+                  <div class="lab-card-meta-row" title="Venue: ${escapeHtml(item.room)}">
+                    <span class="lab-card-meta-label">Venue:</span>
+                    <span class="lab-card-meta-val">${escapeHtml(item.room)}</span>
+                  </div>
+                `;
+              } else {
+                metaRows = `
+                  <div class="lab-card-meta-row" title="Class: ${escapeHtml(item.cls)}">
+                    <span class="lab-card-meta-label">Class:</span>
+                    <span class="lab-card-meta-val">${escapeHtml(item.cls)}</span>
+                  </div>
+                  <div class="lab-card-meta-row" title="Faculty: ${escapeHtml(item.teacher)}">
+                    <span class="lab-card-meta-label">Fac:</span>
+                    <span class="lab-card-meta-val">${escapeHtml(item.teacher)}</span>
+                  </div>
+                `;
+              }
+
+              return `
+                <div class="lab-col">
+                  <div class="slot-lab-card ${isClash ? 'slot-conflict' : ''}" title="${escapeHtml(item.subject)} (${escapeHtml(item.cls)}) · ${escapeHtml(item.teacher)} · ${escapeHtml(item.room)}">
+                    <div class="lab-card-header">
+                      <div class="lab-card-title">
+                        <span class="lab-sub-name">${escapeHtml(item.subject)}</span>
+                        ${isClash ? `<span class="clash-badge" title="Constraint conflict detected!">&#9888; CLASH</span>` : ''}
+                      </div>
+                      <div class="lab-card-badges">
+                        ${secName ? `<span class="section-tag">[${escapeHtml(secName)}]</span>` : ''}
+                        ${item.length > 1 ? `<span class="consecutive-tag">${item.length}-Period Lab</span>` : ''}
+                      </div>
+                    </div>
+                    <div class="lab-card-meta">
+                      ${metaRows}
+                    </div>
+                  </div>
                 </div>
-                <div class="slot-meta">${escapeHtml(subtitle)}</div>
-              </div>
-            </td>
-          `;
+              `;
+            }).join('');
+
+            tableHtml += `
+              <td${rowspanAttr} class="cell-span-block">
+                <div class="lab-block-columns cols-${numCols}">
+                  ${colsHtml}
+                </div>
+              </td>
+            `;
+          } else {
+            // Single-period slot
+            if (numCols === 1) {
+              const item = allItems[0];
+              const isLab = item.kind === 'lab';
+              const isClash = isSessionConflicted(item, allItems, kind, entity);
+              let subtitle = '';
+              if (kind === 'class') {
+                const secTag = (item.cls !== entity) ? `<strong>[${escapeHtml(item.cls)}]</strong> ` : '';
+                subtitle = `${secTag}${escapeHtml(item.teacher)} · ${escapeHtml(item.room)}`;
+              } else if (kind === 'teacher') {
+                subtitle = `${escapeHtml(item.cls)} · ${escapeHtml(item.room)}`;
+              } else {
+                subtitle = `${escapeHtml(item.cls)} · ${escapeHtml(item.teacher)}`;
+              }
+
+              tableHtml += `
+                <td>
+                  <div class="slot-occupied ${isLab ? 'slot-lab' : ''} ${isClash ? 'slot-conflict' : ''}">
+                    <div class="slot-subject">
+                      ${escapeHtml(item.subject)}
+                      ${isClash ? `<span class="clash-badge">&#9888; CLASH</span>` : ''}
+                    </div>
+                    <div class="slot-meta">${subtitle}</div>
+                  </div>
+                </td>
+              `;
+            } else {
+              // Multiple clashing sessions in a single period: divide cell into columns!
+              const colsHtml = allItems.map(item => {
+                const isLab = item.kind === 'lab';
+                const isClash = isSessionConflicted(item, allItems, kind, entity);
+                let subtitle = '';
+                if (kind === 'class') {
+                  const secTag = (item.cls !== entity) ? `<strong>[${escapeHtml(item.cls)}]</strong> ` : '';
+                  subtitle = `${secTag}${escapeHtml(item.teacher)} · ${escapeHtml(item.room)}`;
+                } else if (kind === 'teacher') {
+                  subtitle = `${escapeHtml(item.cls)} · ${escapeHtml(item.room)}`;
+                } else {
+                  subtitle = `${escapeHtml(item.cls)} · ${escapeHtml(item.teacher)}`;
+                }
+
+                return `
+                  <div class="slot-multi-col">
+                    <div class="slot-occupied ${isLab ? 'slot-lab' : ''} ${isClash ? 'slot-conflict' : ''}" style="height:100%; box-sizing:border-box;">
+                      <div class="slot-subject" style="font-size:0.82rem;">
+                        ${escapeHtml(item.subject)}
+                        ${isClash ? `<span class="clash-badge">&#9888; CLASH</span>` : ''}
+                      </div>
+                      <div class="slot-meta" style="font-size:0.75rem;">${subtitle}</div>
+                    </div>
+                  </div>
+                `;
+              }).join('');
+
+              tableHtml += `
+                <td class="cell-multi-block">
+                  <div class="slot-multi-grid cols-${numCols}">
+                    ${colsHtml}
+                  </div>
+                </td>
+              `;
+            }
+          }
         } else {
           tableHtml += `<td><span style="color:#D8D8D6; font-size:0.75rem;">&mdash;</span></td>`;
         }
@@ -1835,7 +2140,52 @@ function renderTimetableMatrix() {
     tableHtml += `</tr>`;
   }
   tableHtml += `</tbody></table>`;
-  elements.matrixContainer.innerHTML = tableHtml;
+  return tableHtml;
+}
+
+function renderTimetableMatrix() {
+  if (!state.currentData || Object.keys(state.asg).length === 0) {
+    elements.matrixContainer.innerHTML = `
+      <p style="color: var(--text-muted); font-size: 0.95rem; padding: 20px;">
+        No timetable generated yet. Execute search under the <strong>Algorithmic Search</strong> tab to build schedule matrices.
+      </p>
+    `;
+    elements.diagnosticsList.innerHTML = `<p style="color: var(--text-muted);">No active schedule.</p>`;
+    return;
+  }
+
+  const data = state.currentData;
+  const sessions = state.sessions;
+  const asg = state.asg;
+  const kind = state.currentPerspective;
+  const entity = state.selectedEntity || elements.selectEntity.value;
+
+  elements.osWindowTitle.textContent = `${kind.toUpperCase()} MATRIX: ${entity}`;
+
+  // Find class lunch period if viewing class
+  let classLunch = -1;
+  if (kind === 'class') {
+    const clsObj = data.classes.find(c => c.name === entity || c.parent_class === entity || c.parent_batch === entity);
+    if (clsObj) classLunch = clsObj.lunch_period - 1; // 0-indexed
+  }
+
+  const breakSet = new Set((data.time.break_periods || []).map(b => b - 1));
+  const periodSlots = data.time.period_slots || [];
+
+  const tableHtml = buildScheduleMatrixTable(data, sessions, asg, kind, entity, periodSlots, breakSet, classLunch);
+
+  // In-page render includes a print-only header for direct browser Ctrl+P
+  const printHeader = `
+    <div class="print-only-header">
+      <div class="print-title">Academic Timetable Matrix &mdash; ${escapeHtml(entity)}</div>
+      <div class="print-subtitle">
+        <span>Perspective: ${kind.toUpperCase()} &bull; Generated: ${new Date().toLocaleDateString()}</span>
+        <span>${state.report?.hard_total === 0 ? '✓ Zero Hard Violations (Clash-Free)' : '⚠ ' + state.report?.hard_total + ' Violations'}</span>
+      </div>
+    </div>
+  `;
+
+  elements.matrixContainer.innerHTML = printHeader + tableHtml;
 
   // Diagnostics messages
   if (state.report && state.report.messages.length > 0) {
@@ -1851,6 +2201,317 @@ function renderTimetableMatrix() {
       </div>
     `;
   }
+}
+
+function generatePrintableScheduleHtml(perspective, entity) {
+  const data = state.currentData;
+  const sessions = state.sessions;
+  const asg = state.asg;
+  const kind = perspective || state.currentPerspective || 'class';
+  const ent = entity || state.selectedEntity || elements.selectEntity.value;
+
+  let classLunch = -1;
+  if (kind === 'class') {
+    const clsObj = data.classes.find(c => c.name === ent || c.parent_class === ent || c.parent_batch === ent);
+    if (clsObj) classLunch = clsObj.lunch_period - 1;
+  }
+  const breakSet = new Set((data.time.break_periods || []).map(b => b - 1));
+  const periodSlots = data.time.period_slots || [];
+
+  const tableHtml = buildScheduleMatrixTable(data, sessions, asg, kind, ent, periodSlots, breakSet, classLunch);
+  const hardTotal = state.report ? state.report.hard_total : 0;
+  const totalSessions = sessions.length;
+  const printDate = new Date().toLocaleString();
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Official Academic Timetable — ${escapeHtml(ent)} (${kind.toUpperCase()})</title>
+  <style>
+    @page { size: landscape; margin: 10mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      color: #0F172A;
+      background: #FFFFFF;
+      font-size: 11px;
+    }
+    .print-controls-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #F8FAFC;
+      border: 1px solid #CBD5E1;
+      border-radius: 6px;
+      padding: 10px 16px;
+      margin-bottom: 20px;
+    }
+    .btn-action {
+      background: #0F172A;
+      color: #FFFFFF;
+      border: none;
+      padding: 8px 18px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-action:hover { background: #1E293B; }
+    .btn-close {
+      background: #E2E8F0;
+      color: #334155;
+      border: 1px solid #CBD5E1;
+      padding: 8px 14px;
+      border-radius: 4px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn-close:hover { background: #CBD5E1; }
+    
+    @media print {
+      .print-controls-bar { display: none !important; }
+      body { padding: 0 !important; font-size: 9.5px !important; }
+    }
+
+    .inst-header {
+      border-bottom: 2.5px solid #0F172A;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .inst-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin: 0 0 4px 0;
+      color: #0F172A;
+      letter-spacing: -0.02em;
+    }
+    .inst-meta {
+      font-size: 12px;
+      color: #475569;
+      font-weight: 500;
+    }
+    .stat-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge-green { background: #DCFCE7; color: #166534; border: 1px solid #BBF7D0; }
+    .badge-red { background: #FEE2E2; color: #991B1B; border: 1px solid #FECACA; }
+    
+    .timetable-grid {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1.5px solid #334155;
+      margin-bottom: 16px;
+      table-layout: fixed;
+    }
+    .timetable-grid th, .timetable-grid td {
+      border: 1px solid #64748B;
+      padding: 6px 8px;
+      vertical-align: top;
+      text-align: left;
+    }
+    .timetable-grid th {
+      background: #F1F5F9;
+      font-weight: 700;
+      color: #334155;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .timetable-grid th.period-col {
+      width: 13%;
+      text-align: center;
+      background: #E2E8F0;
+    }
+    .period-time-sub {
+      font-size: 9px;
+      color: #64748B;
+      font-weight: 500;
+    }
+
+    .slot-occupied {
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      border-left: 3.5px solid #0F172A;
+      padding: 6px 8px;
+      border-radius: 3px;
+    }
+    .slot-lab-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 6px 8px;
+      border-radius: 3px;
+      background: #FAF5FF;
+      border: 1px solid #E9D5FF;
+      border-left: 4px solid #6B21A8;
+      min-height: 80px;
+    }
+    .slot-conflict {
+      background: #FEF2F2 !important;
+      border: 1px solid #FCA5A5 !important;
+      border-left: 4px solid #DC2626 !important;
+    }
+
+    .lab-block-columns {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      gap: 6px;
+      width: 100%;
+      height: 100%;
+      min-height: 84px;
+    }
+    .lab-col {
+      flex: 1 1 0;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .slot-subject, .lab-sub-name {
+      font-weight: 700;
+      color: #0F172A;
+      font-size: 11px;
+      line-height: 1.25;
+      word-break: break-word;
+    }
+    .slot-meta {
+      font-size: 9.5px;
+      color: #64748B;
+      margin-top: 3px;
+    }
+    .lab-card-meta {
+      font-size: 9px;
+      color: #64748B;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      border-top: 1px dashed #CBD5E1;
+      padding-top: 4px;
+      margin-top: auto;
+    }
+    .lab-card-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .lab-card-meta-label {
+      font-weight: 700;
+      color: #475569;
+      font-size: 8.5px;
+      text-transform: uppercase;
+    }
+
+    .section-tag {
+      font-weight: 700;
+      background: #E2E8F0;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 9.5px;
+    }
+    .consecutive-tag {
+      font-weight: 600;
+      background: #EDE9FE;
+      color: #6B21A8;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 8.5px;
+      text-transform: uppercase;
+    }
+    .clash-badge {
+      font-weight: 700;
+      background: #FEE2E2;
+      color: #DC2626;
+      border: 1px solid #FECACA;
+      padding: 1px 4px;
+      border-radius: 3px;
+      font-size: 8.5px;
+      text-transform: uppercase;
+    }
+
+    .slot-break, .slot-lunch {
+      text-align: center;
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 8px;
+    }
+    .slot-break { background: #F8FAFC; color: #64748B; }
+    .slot-lunch { background: #FEF9C3; color: #854D0E; }
+
+    .inst-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid #CBD5E1;
+      padding-top: 10px;
+      margin-top: 20px;
+      font-size: 10px;
+      color: #64748B;
+    }
+  </style>
+</head>
+<body>
+  <div class="print-controls-bar">
+    <div>
+      <strong>Official Noticeboard Document Preview</strong> &mdash; ${escapeHtml(ent)} (${kind.toUpperCase()} View)
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <button class="btn-action" onclick="window.print()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print Document
+      </button>
+      <button class="btn-close" onclick="window.close()">Close Window</button>
+    </div>
+  </div>
+
+  <div class="inst-header">
+    <div>
+      <div class="inst-title">Academic Schedule & Timetable Matrix</div>
+      <div class="inst-meta">
+        <strong>Perspective:</strong> ${kind.toUpperCase()} &mdash; <strong>${escapeHtml(ent)}</strong> &nbsp;|&nbsp;
+        <strong>Generated:</strong> ${printDate} &nbsp;|&nbsp;
+        <strong>Total Sessions:</strong> ${totalSessions}
+      </div>
+    </div>
+    <div>
+      ${hardTotal === 0
+        ? '<span class="stat-badge badge-green">&#10003; 100% Clash-Free (Zero Violations)</span>'
+        : `<span class="stat-badge badge-red">&#9888; ${hardTotal} Hard Violations Active</span>`
+      }
+    </div>
+  </div>
+
+  ${tableHtml}
+
+  <div class="inst-footer">
+    <div>Generated by <strong>Constraint Satisfaction AI Timetable Scheduler</strong> &bull; Multi-Period Consecutive Lab Engine</div>
+    <div>Authorized by Office of the Academic Dean &bull; Noticeboard Certified Copy</div>
+  </div>
+</body>
+</html>`;
 }
 
 // =============================================================================
@@ -2044,11 +2705,11 @@ window.applySuggestedSlot = function(day, period, room) {
 // =============================================================================
 function exportCsv() {
   if (!state.currentData || Object.keys(state.asg).length === 0) {
-    showNotice('No active timetable assignment to export.', 'yellow');
+    showNotice('No active timetable assignment to export. Please run search in Tab 2 first.', 'yellow');
     return;
   }
   const data = state.currentData;
-  const sessions = state.sessions;
+  const sessions = state.sessions || [];
   const asg = state.asg;
   const periodSlots = data.time.period_slots || [];
 
@@ -2057,9 +2718,10 @@ function exportCsv() {
     const val = asg[s.sid];
     if (val) {
       const [d, p, r] = val;
+      const dayName = data.time.days[d] || `Day ${d + 1}`;
       const slotObj = periodSlots.find(sp => sp.period === (p + 1));
       const slotTime = slotObj ? `"${slotObj.name}"` : `""`;
-      csv += `${s.sid},"${s.cls}","${s.subject}","${s.teacher}","${s.kind}",${s.length},"${data.time.days[d]}",${p + 1},${slotTime},"${r}"\n`;
+      csv += `${s.sid},"${s.cls}","${s.subject}","${s.teacher}","${s.kind}",${s.length},"${dayName}",${p + 1},${slotTime},"${r}"\n`;
     }
   });
 
@@ -2068,8 +2730,11 @@ function exportCsv() {
   const a = document.createElement('a');
   a.href = url;
   a.download = `academic_timetable_export_${Date.now()}.csv`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  showNotice('Timetable exported successfully as relational CSV.', 'green');
 }
 
 function exportJson() {
@@ -2081,17 +2746,72 @@ function exportJson() {
     institution_data: state.currentData,
     assignment: state.asg,
     report: state.report,
+    sessions: state.sessions,
     exported_at: new Date().toISOString()
   };
-  const str = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(payload, null, 2));
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = str;
+  a.href = url;
   a.download = `full_schedule_payload_${Date.now()}.json`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showNotice('Complete schedule payload exported successfully as JSON.', 'green');
+}
+
+function exportHtmlReport() {
+  if (!state.currentData || Object.keys(state.asg).length === 0) {
+    showNotice('No active timetable assignment to export. Please run search in Tab 2 first.', 'yellow');
+    return;
+  }
+  const htmlDoc = generatePrintableScheduleHtml(state.currentPerspective, state.selectedEntity);
+  const blob = new Blob([htmlDoc], { type: 'text/html;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const sanitizedName = (state.selectedEntity || 'matrix').replace(/[^a-zA-Z0-9_-]/g, '_');
+  a.download = `academic_timetable_${sanitizedName}_${Date.now()}.html`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showNotice('Standalone printable HTML report downloaded successfully.', 'green');
 }
 
 function handlePrintMatrix() {
-  window.print();
+  if (!state.currentData || Object.keys(state.asg).length === 0) {
+    showNotice('Please execute search or load a timetable first before printing.', 'yellow');
+    return;
+  }
+
+  // Open a clean, isolated print-only window without application UI chrome
+  const htmlDoc = generatePrintableScheduleHtml(state.currentPerspective, state.selectedEntity);
+  const printWin = window.open('', '_blank');
+
+  if (printWin) {
+    printWin.document.open();
+    printWin.document.write(htmlDoc);
+    printWin.document.close();
+    printWin.focus();
+    setTimeout(() => {
+      try {
+        printWin.print();
+      } catch (e) {
+        console.warn('Auto-print blocked, user can click Print Document in the popup:', e);
+      }
+    }, 450);
+  } else {
+    // Popup was blocked by browser settings: switch to Views tab and trigger window.print with @media print styles
+    elements.navTabs.forEach(b => {
+      if (b.dataset.tab === 'tab-views') b.click();
+    });
+    showNotice('Print popup window was blocked by browser. Switched to Views tab; using system print dialog.', 'blue');
+    setTimeout(() => {
+      window.print();
+    }, 300);
+  }
 }
 
 // =============================================================================
@@ -2102,57 +2822,226 @@ async function loadBenchmarks() {
     const res = await fetch('/api/benchmarks');
     if (!res.ok) return;
     const data = await res.json();
-    if (!data.summary || data.summary.length === 0) return;
-
-    const smallRows = data.summary.filter(r => r.Dataset && r.Dataset.toLowerCase().includes('small'));
-    const largeRows = data.summary.filter(r => r.Dataset && r.Dataset.toLowerCase().includes('large'));
-
-    let html = `
-      <div style="margin-bottom: 24px;">
-        <h4 style="font-family: var(--font-serif); font-size: 1.3rem; margin-bottom: 8px;">Small Dataset Benchmark (3 Classes, 6 Faculty, 4 Rooms)</h4>
-        ${renderBenchmarkTable(smallRows)}
-      </div>
-      <div>
-        <h4 style="font-family: var(--font-serif); font-size: 1.3rem; margin-bottom: 8px;">Large Dataset Benchmark (8 Classes, 15 Faculty, 8 Rooms)</h4>
-        ${renderBenchmarkTable(largeRows)}
-      </div>
-    `;
-    elements.benchmarkContainer.innerHTML = html;
+    state.benchmarkData = data;
+    renderAllBenchmarkViews();
   } catch (err) {
-    console.error(err);
+    console.error('Failed to load benchmarks:', err);
   }
 }
 
+function renderAllBenchmarkViews() {
+  if (!state.benchmarkData || !elements.benchmarkContainer) return;
+  const data = state.benchmarkData;
+  const filter = state.activeBenchmarkFilter || 'all';
+
+  const summary = data.summary || [];
+  const savedRuns = data.saved_runs || {};
+
+  let html = '';
+
+  // 1. Institutional Specification Benchmark
+  if (filter === 'all' || filter === 'institutional') {
+    const instRun = savedRuns['institutional'];
+    const instRecords = instRun ? instRun.records : [];
+    if (instRecords && instRecords.length > 0) {
+      html += `
+        <div style="margin-bottom: 28px;">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+            <h4 style="font-family: var(--font-serif); font-size: 1.25rem; margin: 0;">Institutional Specification Benchmark (7 Batches, 29 Classes, 204 Sessions)</h4>
+            <span style="font-size: 0.78rem; font-family: var(--font-mono); color: var(--text-muted);">${instRun.timestamp || 'Standard Benchmark'}</span>
+          </div>
+          ${renderBenchmarkTable(instRecords)}
+        </div>
+      `;
+    }
+  }
+
+  // 2. Custom / Active Dataset Live Runs
+  if (filter === 'all' || filter === 'custom') {
+    const customKeys = Object.keys(savedRuns).filter(k => k !== 'institutional');
+    if (customKeys.length > 0) {
+      customKeys.reverse(); // Most recent first
+      for (const k of customKeys.slice(0, 3)) {
+        const run = savedRuns[k];
+        html += `
+          <div style="margin-bottom: 28px;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px;">
+              <h4 style="font-family: var(--font-serif); font-size: 1.25rem; margin: 0;">${escapeHtml(run.display_name || run.dataset)}</h4>
+              <span style="font-size: 0.78rem; font-family: var(--font-mono); color: var(--text-muted);">Executed: ${escapeHtml(run.timestamp)}</span>
+            </div>
+            ${renderBenchmarkTable(run.records)}
+          </div>
+        `;
+      }
+    } else if (filter === 'custom') {
+      html += `
+        <div style="padding: 24px; text-align: center; border: 1px dashed var(--border-light); border-radius: 6px; margin-bottom: 20px;">
+          <p style="color: var(--text-muted); margin-bottom: 10px;">No custom live benchmark run recorded yet.</p>
+          <p style="font-size: 0.85rem; color: var(--text-muted);">Click <strong>"Run Live Benchmark"</strong> above to benchmark your active or custom dataset across all 6 solvers.</p>
+        </div>
+      `;
+    }
+  }
+
+  // 3. Large Dataset Benchmark
+  if (filter === 'all' || filter === 'large') {
+    const largeRows = summary.filter(r => r.Dataset && r.Dataset.toLowerCase().includes('large'));
+    if (largeRows.length > 0) {
+      html += `
+        <div style="margin-bottom: 28px;">
+          <h4 style="font-family: var(--font-serif); font-size: 1.25rem; margin-bottom: 8px;">Large Dataset Benchmark (8 Classes, 15 Faculty, 8 Rooms, 144 Sessions)</h4>
+          ${renderBenchmarkTable(largeRows)}
+        </div>
+      `;
+    }
+  }
+
+  // 4. Small Dataset Benchmark
+  if (filter === 'all' || filter === 'small') {
+    const smallRows = summary.filter(r => r.Dataset && r.Dataset.toLowerCase().includes('small'));
+    if (smallRows.length > 0) {
+      html += `
+        <div style="margin-bottom: 28px;">
+          <h4 style="font-family: var(--font-serif); font-size: 1.25rem; margin-bottom: 8px;">Small Dataset Benchmark (3 Classes, 6 Faculty, 4 Rooms, 36 Sessions)</h4>
+          ${renderBenchmarkTable(smallRows)}
+        </div>
+      `;
+    }
+  }
+
+  elements.benchmarkContainer.innerHTML = html || '<p style="color:var(--text-muted);">No benchmark records matching selected filter.</p>';
+}
+
 function renderBenchmarkTable(rows) {
-  if (rows.length === 0) return '<p style="color:var(--text-muted);">No benchmark records.</p>';
+  if (!rows || rows.length === 0) return '<p style="color:var(--text-muted);">No records available.</p>';
+
+  // Find max time for relative visual bars
+  const maxTime = Math.max(...rows.map(r => parseFloat(r['Avg Time (s)'] || r['Time (s)'] || 0.1)), 1.0);
+
   return `
-    <table style="width:100%; margin-bottom:20px;">
+    <table class="benchmark-output-table">
       <thead>
         <tr>
           <th>Algorithmic Method</th>
-          <th>Success Rate</th>
-          <th>Avg Time (s)</th>
-          <th>Std Dev (s)</th>
-          <th>Work (Nodes/Iters)</th>
-          <th>Avg Hard Clashes</th>
-          <th>Avg Soft Penalty</th>
+          <th>Feasibility Status</th>
+          <th>Runtime</th>
+          <th>Search Work</th>
+          <th>Hard Clashes</th>
+          <th>Soft Penalty</th>
+          <th>Output Summary</th>
         </tr>
       </thead>
       <tbody>
-        ${rows.map(r => `
-          <tr>
-            <td><strong>${escapeHtml(r.Method)}</strong></td>
-            <td><span class="badge ${r['Success Rate'].startsWith('10') ? 'badge-green' : 'badge-yellow'}">${r['Success Rate']}</span></td>
-            <td>${r['Avg Time (s)']}s</td>
-            <td>±${r['Std Time (s)']}s</td>
-            <td>${Number(r['Avg Work (nodes/iters)']).toLocaleString()}</td>
-            <td>${r['Avg Hard Violations']}</td>
-            <td><strong>${r['Avg Soft Penalty (valid runs)']}</strong></td>
-          </tr>
-        `).join('')}
+        ${rows.map(r => {
+          const success = (r.Success === true || (r['Success Rate'] && (r['Success Rate'].startsWith('10/10') || r['Success Rate'].startsWith('1/1'))));
+          const timeVal = parseFloat(r['Avg Time (s)'] || r['Time (s)'] || 0);
+          const barPct = Math.min(100, Math.max(4, Math.round((timeVal / maxTime) * 100)));
+          const clashes = (r['Avg Hard Violations'] !== undefined) ? r['Avg Hard Violations'] : (r['Hard Clashes'] !== undefined ? r['Hard Clashes'] : 0);
+          const soft = (r['Avg Soft Penalty (valid runs)'] !== undefined) ? r['Avg Soft Penalty (valid runs)'] : (r['Soft Penalty'] !== undefined ? r['Soft Penalty'] : 0);
+          const work = (r['Avg Work (nodes/iters)'] !== undefined) ? r['Avg Work (nodes/iters)'] : (r.Work !== undefined ? r.Work : 0);
+          const summaryText = r['Output Summary'] || (success ? 'Clash-Free Valid Schedule' : `${clashes} Constraint Violations`);
+
+          return `
+            <tr>
+              <td>
+                <strong>${escapeHtml(r.Method)}</strong>
+              </td>
+              <td>
+                <span class="badge ${success ? 'badge-green' : (clashes === 0 ? 'badge-yellow' : 'badge-red')}">
+                  ${success ? '&#10003; Clash-Free' : (clashes > 0 ? `${clashes} Violations` : 'Timeout')}
+                </span>
+              </td>
+              <td>
+                <div class="time-bar-container">
+                  <span style="font-family: var(--font-mono); font-size: 0.85rem; min-width: 48px;">${timeVal.toFixed(3)}s</span>
+                  <div class="time-bar-track" title="${timeVal}s">
+                    <div class="time-bar-fill" style="width: ${barPct}%; background: ${timeVal < 0.5 ? '#10B981' : (timeVal < 3.0 ? '#3B82F6' : '#F59E0B')};"></div>
+                  </div>
+                </div>
+              </td>
+              <td style="font-family: var(--font-mono); font-size: 0.82rem;">
+                ${Number(work).toLocaleString()} <span style="font-size: 0.72rem; color: var(--text-muted);">${r.Method.includes('BT') || r.Method.includes('Backtracking') ? 'nodes' : 'iters'}</span>
+              </td>
+              <td>
+                <strong style="color: ${clashes === 0 ? '#10B981' : '#EF4444'}; font-family: var(--font-mono);">
+                  ${clashes}
+                </strong>
+              </td>
+              <td>
+                <strong style="font-family: var(--font-mono);">${soft}</strong>
+              </td>
+              <td>
+                <span style="font-size: 0.78rem; font-family: var(--font-mono); color: var(--text-muted);">
+                  ${escapeHtml(summaryText)}
+                </span>
+              </td>
+            </tr>
+          `;
+        }).join('')}
       </tbody>
     </table>
   `;
+}
+
+async function handleRunLiveBenchmark() {
+  const targetDs = elements.benchSelectDataset ? elements.benchSelectDataset.value : 'active';
+  const timeoutVal = elements.benchSelectTimeout ? parseFloat(elements.benchSelectTimeout.value) : 5.0;
+
+  let payload = {
+    time_limit: timeoutVal,
+    seed: 42
+  };
+
+  if (targetDs === 'active') {
+    if (!state.customData && !state.currentData) {
+      showNotice('No active dataset found in memory to benchmark.', 'yellow');
+      return;
+    }
+    // Compile solver data so sections and lab blocks are included
+    payload.data = state.customData ? compileSolverData(state.customData) : state.currentData;
+  } else {
+    payload.dataset_name = targetDs;
+  }
+
+  const btn = elements.btnRunLiveBenchmark;
+  const oldText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<span style="display:inline-block; animation:spin 1s linear infinite; margin-right:6px;">&#8635;</span> Running Benchmark...`;
+
+  showNotice(`Running empirical benchmark across all 6 solvers on ${targetDs} dataset... Please wait.`, 'blue');
+
+  try {
+    const res = await fetch('/api/benchmark/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.detail || `HTTP ${res.status}`);
+    }
+
+    const runResult = await res.json();
+    showNotice(`Benchmark completed successfully on ${runResult.dataset}! (${runResult.records.length} algorithms evaluated)`, 'green');
+
+    // Switch filter to show the newly benchmarked dataset
+    state.activeBenchmarkFilter = (targetDs === 'active' || targetDs === 'custom') ? 'custom' : targetDs;
+    if (elements.benchmarkFilterTabs) {
+      elements.benchmarkFilterTabs.forEach(b => {
+        if (b.dataset.filter === state.activeBenchmarkFilter) b.classList.add('active');
+        else b.classList.remove('active');
+      });
+    }
+
+    // Refresh benchmark data
+    await loadBenchmarks();
+  } catch (err) {
+    showNotice(`Benchmark execution failed: ${err.message}`, 'red');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = oldText;
+  }
 }
 
 // =============================================================================

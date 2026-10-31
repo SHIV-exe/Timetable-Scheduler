@@ -68,9 +68,19 @@ def get_dataset(name: str):
         if name_clean == "custom":
             return None
         raise HTTPException(status_code=404, detail=f"Dataset {name_clean}.json not found on disk.")
+    elif name_clean in ("institutional", "institutional_specification", "institutional_timetable_specification"):
+        candidates = [
+            os.path.join(os.path.dirname(__file__), "data", "institutional_timetable_specification.json"),
+            os.path.join(os.path.dirname(__file__), "data", "institutional_timetable_specification (1).json"),
+        ]
+        for c in candidates:
+            if os.path.exists(c):
+                with open(c, "r", encoding="utf-8") as f:
+                    return json.load(f)
+        raise HTTPException(status_code=404, detail="Institutional specification JSON not found.")
     elif name_clean == "template":
         return get_template_dict()
-    raise HTTPException(status_code=400, detail="Dataset must be 'small', 'large', 'custom', or 'template'.")
+    raise HTTPException(status_code=400, detail="Dataset must be 'small', 'large', 'custom', 'institutional', or 'template'.")
 
 
 @app.post("/api/dataset/custom")
@@ -213,19 +223,181 @@ def api_suggest(req: SuggestRequest):
     return {"suggestions": suggestions[:15]}
 
 
+class BenchmarkRunRequest(BaseModel):
+    data: Optional[Dict[str, Any]] = None
+    dataset_name: Optional[str] = None
+    dataset_key: Optional[str] = None
+    algorithms: Optional[List[str]] = None
+    time_limit: Optional[float] = 5.0
+    seed: Optional[int] = 42
+
+
+@app.post("/api/benchmark/run")
+def api_benchmark_run(req: BenchmarkRunRequest):
+    """Execute benchmark across algorithms on any dataset and return comparative outputs."""
+    raw_data = req.data
+    dataset_label = "Custom / Active Dataset"
+
+    ds_name = req.dataset_name or req.dataset_key
+    if not raw_data and ds_name:
+        name_clean = ds_name.lower().strip()
+        dataset_label = f"{name_clean.capitalize()} Dataset"
+        candidates = [
+            os.path.join(os.path.dirname(__file__), "data", f"{name_clean}.json"),
+            os.path.join(os.path.dirname(__file__), "data", "institutional_timetable_specification.json"),
+            os.path.join(os.path.dirname(__file__), "data", "institutional_timetable_specification (1).json"),
+        ]
+        for c in candidates:
+            if os.path.exists(c):
+                with open(c, "r", encoding="utf-8") as f:
+                    raw_data = json.load(f)
+                break
+
+    if not raw_data:
+        c_path = os.path.join(os.path.dirname(__file__), "data", "custom.json")
+        if os.path.exists(c_path):
+            with open(c_path, "r", encoding="utf-8") as f:
+                raw_data = json.load(f)
+        else:
+            raise HTTPException(status_code=400, detail="No dataset provided or found to benchmark.")
+
+    try:
+        data_obj = load_from_dict(raw_data)
+        teacher_of = assign_teachers(data_obj)
+        sessions = build_sessions(data_obj, teacher_of)
+        domains = build_domains(data_obj, sessions)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to prepare dataset for benchmark: {str(e)}")
+
+    algos_to_test = req.algorithms or [
+        "Min-Conflicts",
+        "BT heuristics",
+        "Hill Climbing",
+        "Simulated Annealing",
+        "Hybrid (BT + SA)",
+        "BT baseline",
+    ]
+
+    time_limit = float(req.time_limit or 5.0)
+    seed = int(req.seed if req.seed is not None else 42)
+    num_sessions = len(sessions)
+    records = []
+
+    for algo in algos_to_test:
+        limit = time_limit
+        if "baseline" in algo.lower() and num_sessions > 40:
+            limit = min(2.0, time_limit)
+
+        try:
+            res = solvers.run(
+                algo=algo,
+                data=data_obj,
+                sessions=sessions,
+                domains=domains,
+                seed=seed,
+                time_limit=limit,
+            )
+            rep = evaluate(data_obj, sessions, res.asg)
+            success = bool(res.success and rep.hard_total == 0)
+            elapsed = round(res.time_taken, 3)
+
+            rec = {
+                "Dataset": dataset_label,
+                "Method": algo,
+                "Success": success,
+                "Success Rate": "1/1" if success else "0/1",
+                "Avg Time (s)": elapsed,
+                "Std Time (s)": 0.0,
+                "Avg Work (nodes/iters)": res.work,
+                "Avg Hard Violations": rep.hard_total,
+                "Avg Soft Penalty (valid runs)": rep.soft_total,
+                "Hard Breakdown": dict(rep.hard),
+                "Soft Breakdown": dict(rep.soft),
+                "Output Summary": f"{'Clash-Free (0 Clashes)' if rep.hard_total == 0 else f'{rep.hard_total} Clashes'} · {res.work} iters · {elapsed}s",
+            }
+            records.append(rec)
+        except Exception as err:
+            records.append({
+                "Dataset": dataset_label,
+                "Method": algo,
+                "Success": False,
+                "Success Rate": "0/1",
+                "Avg Time (s)": 0.0,
+                "Std Time (s)": 0.0,
+                "Avg Work (nodes/iters)": 0,
+                "Avg Hard Violations": -1,
+                "Avg Soft Penalty (valid runs)": -1,
+                "Hard Breakdown": {},
+                "Soft Breakdown": {},
+                "Output Summary": f"Error: {str(err)}",
+            })
+
+    results_dir = os.path.join(os.path.dirname(__file__), "experiments", "results")
+    os.makedirs(results_dir, exist_ok=True)
+    json_path = os.path.join(results_dir, "benchmark_runs.json")
+    saved_runs = {}
+    if os.path.exists(json_path):
+        try:
+            with open(json_path, "r", encoding="utf-8") as f:
+                saved_runs = json.load(f)
+        except Exception:
+            saved_runs = {}
+
+    run_key = f"{dataset_label.lower().replace(' ', '_')}_{int(time.time())}"
+    saved_runs[run_key] = {
+        "dataset": dataset_label,
+        "display_name": f"{dataset_label} ({len(sessions)} Sessions, {len(data_obj.classes)} Classes)",
+        "sessions_count": len(sessions),
+        "classes_count": len(data_obj.classes),
+        "rooms_count": len(data_obj.rooms),
+        "teachers_count": len(data_obj.teachers),
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "records": records,
+    }
+
+    try:
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(saved_runs, f, indent=2)
+    except Exception:
+        pass
+
+    return {
+        "dataset": dataset_label,
+        "sessions_count": len(sessions),
+        "classes_count": len(data_obj.classes),
+        "rooms_count": len(data_obj.rooms),
+        "teachers_count": len(data_obj.teachers),
+        "records": records,
+        "run_key": run_key,
+    }
+
+
 @app.get("/api/benchmarks")
 def api_benchmarks():
     summary_path = os.path.join(os.path.dirname(__file__), "experiments", "results", "summary.csv")
     raw_path = os.path.join(os.path.dirname(__file__), "experiments", "results", "raw.csv")
+    runs_path = os.path.join(os.path.dirname(__file__), "experiments", "results", "benchmark_runs.json")
 
     summary_data = []
     if os.path.exists(summary_path):
-        import pandas as pd
-        df = pd.read_csv(summary_path)
-        summary_data = df.to_dict(orient="records")
+        try:
+            import pandas as pd
+            df = pd.read_csv(summary_path)
+            summary_data = df.to_dict(orient="records")
+        except Exception:
+            pass
+
+    saved_runs = {}
+    if os.path.exists(runs_path):
+        try:
+            with open(runs_path, "r", encoding="utf-8") as f:
+                saved_runs = json.load(f)
+        except Exception:
+            saved_runs = {}
 
     return {
         "summary": summary_data,
+        "saved_runs": saved_runs,
         "has_raw": os.path.exists(raw_path),
     }
 

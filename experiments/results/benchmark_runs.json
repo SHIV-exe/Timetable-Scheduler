@@ -1,0 +1,701 @@
+{
+  "institutional": {
+    "dataset": "institutional",
+    "display_name": "Institutional Specification (7 Batches, 29 Classes)",
+    "sessions_count": 204,
+    "classes_count": 29,
+    "rooms_count": 24,
+    "teachers_count": 31,
+    "timestamp": "2026-10-31 16:08:26",
+    "records": [
+      {
+        "Dataset": "institutional",
+        "Method": "Min-Conflicts",
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.065,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 46,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 167,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S1": 94,
+          "S2": 39,
+          "S5": 34
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 46 iters \u00b7 0.065s"
+      },
+      {
+        "Dataset": "institutional",
+        "Method": "BT heuristics",
+        "Success Rate": "0/1",
+        "Avg Time (s)": 3.005,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 2984,
+        "Avg Hard Violations": 204,
+        "Avg Soft Penalty (valid runs)": 0,
+        "Hard Breakdown": {
+          "H7": 204
+        },
+        "Soft Breakdown": {},
+        "Output Summary": "204 Clashes \u00b7 2984 iters \u00b7 3.005s"
+      },
+      {
+        "Dataset": "institutional",
+        "Method": "Hill Climbing",
+        "Success Rate": "0/1",
+        "Avg Time (s)": 1.654,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 3000,
+        "Avg Hard Violations": 4,
+        "Avg Soft Penalty (valid runs)": 139,
+        "Hard Breakdown": {
+          "H2": 4
+        },
+        "Soft Breakdown": {
+          "S1": 86,
+          "S2": 27,
+          "S5": 26
+        },
+        "Output Summary": "4 Clashes \u00b7 3000 iters \u00b7 1.654s"
+      },
+      {
+        "Dataset": "institutional",
+        "Method": "Simulated Annealing",
+        "Success Rate": "0/1",
+        "Avg Time (s)": 4.146,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 7935,
+        "Avg Hard Violations": 13,
+        "Avg Soft Penalty (valid runs)": 201,
+        "Hard Breakdown": {
+          "H2": 13
+        },
+        "Soft Breakdown": {
+          "S1": 100,
+          "S2": 51,
+          "S5": 50
+        },
+        "Output Summary": "13 Clashes \u00b7 7935 iters \u00b7 4.146s"
+      },
+      {
+        "Dataset": "institutional",
+        "Method": "Hybrid (BT + SA)",
+        "Success Rate": "1/1",
+        "Avg Time (s)": 6.741,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 11516,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 199,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S1": 84,
+          "S2": 63,
+          "S5": 52
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 11516 iters \u00b7 6.741s"
+      },
+      {
+        "Dataset": "institutional",
+        "Method": "BT baseline",
+        "Success Rate": "0/1",
+        "Avg Time (s)": 2.0,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 360426,
+        "Avg Hard Violations": 204,
+        "Avg Soft Penalty (valid runs)": 0,
+        "Hard Breakdown": {
+          "H7": 204
+        },
+        "Soft Breakdown": {},
+        "Output Summary": "204 Clashes \u00b7 360426 iters \u00b7 2.0s"
+      }
+    ]
+  },
+  "small_dataset_1793443690": {
+    "dataset": "Small Dataset",
+    "display_name": "Small Dataset (45 Sessions, 3 Classes)",
+    "sessions_count": 45,
+    "classes_count": 3,
+    "rooms_count": 4,
+    "teachers_count": 6,
+    "timestamp": "2026-10-31 16:18:10",
+    "records": [
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Min-Conflicts",
+        "Success": false,
+        "Success Rate": "0/1",
+        "Avg Time (s)": 0.002,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 1,
+        "Avg Hard Violations": 2,
+        "Avg Soft Penalty (valid runs)": 62,
+        "Hard Breakdown": {
+          "H3": 2
+        },
+        "Soft Breakdown": {
+          "S4": 11,
+          "S1": 24,
+          "S2": 27
+        },
+        "Output Summary": "2 Clashes \u00b7 1 iters \u00b7 0.002s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "BT heuristics",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.013,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 53,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 77,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 13,
+          "S1": 20,
+          "S2": 42,
+          "S5": 2
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 53 iters \u00b7 0.013s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Hill Climbing",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.19,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 2023,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 3,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 3
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 2023 iters \u00b7 0.19s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Simulated Annealing",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.929,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 9720,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 1,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 1
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 9720 iters \u00b7 0.929s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Hybrid (BT + SA)",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.94,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 9818,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 2,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 2
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 9818 iters \u00b7 0.94s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "BT baseline",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.001,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 120,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 54,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 10,
+          "S1": 20,
+          "S2": 24
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 120 iters \u00b7 0.001s"
+      }
+    ]
+  },
+  "custom_/_active_dataset_1793443700": {
+    "dataset": "Custom / Active Dataset",
+    "display_name": "Custom / Active Dataset (204 Sessions, 29 Classes)",
+    "sessions_count": 204,
+    "classes_count": 29,
+    "rooms_count": 24,
+    "teachers_count": 31,
+    "timestamp": "2026-10-31 16:18:20",
+    "records": [
+      {
+        "Dataset": "Custom / Active Dataset",
+        "Method": "min_conflicts",
+        "Success": false,
+        "Success Rate": "0/1",
+        "Avg Time (s)": 0.0,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 0,
+        "Avg Hard Violations": -1,
+        "Avg Soft Penalty (valid runs)": -1,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {},
+        "Output Summary": "Error: Unknown algorithm: 'min_conflicts'"
+      },
+      {
+        "Dataset": "Custom / Active Dataset",
+        "Method": "hybrid",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 6.083,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 10981,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 230,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S1": 110,
+          "S2": 78,
+          "S5": 42
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 10981 iters \u00b7 6.083s"
+      }
+    ]
+  },
+  "custom_/_active_dataset_1793443723": {
+    "dataset": "Custom / Active Dataset",
+    "display_name": "Custom / Active Dataset (204 Sessions, 29 Classes)",
+    "sessions_count": 204,
+    "classes_count": 29,
+    "rooms_count": 24,
+    "teachers_count": 31,
+    "timestamp": "2026-10-31 16:18:43",
+    "records": [
+      {
+        "Dataset": "Custom / Active Dataset",
+        "Method": "Min-Conflicts",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.076,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 1,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 229,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S1": 112,
+          "S2": 69,
+          "S5": 48
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 1 iters \u00b7 0.076s"
+      },
+      {
+        "Dataset": "Custom / Active Dataset",
+        "Method": "Hybrid (BT + SA)",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 6.051,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 10950,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 230,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S1": 110,
+          "S2": 78,
+          "S5": 42
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 10950 iters \u00b7 6.051s"
+      }
+    ]
+  },
+  "small_dataset_1793443775": {
+    "dataset": "Small Dataset",
+    "display_name": "Small Dataset (45 Sessions, 3 Classes)",
+    "sessions_count": 45,
+    "classes_count": 3,
+    "rooms_count": 4,
+    "teachers_count": 6,
+    "timestamp": "2026-10-31 16:19:35",
+    "records": [
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Min-Conflicts",
+        "Success": false,
+        "Success Rate": "0/1",
+        "Avg Time (s)": 0.002,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 1,
+        "Avg Hard Violations": 2,
+        "Avg Soft Penalty (valid runs)": 62,
+        "Hard Breakdown": {
+          "H3": 2
+        },
+        "Soft Breakdown": {
+          "S4": 11,
+          "S1": 24,
+          "S2": 27
+        },
+        "Output Summary": "2 Clashes \u00b7 1 iters \u00b7 0.002s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "BT heuristics",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.013,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 53,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 77,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 13,
+          "S1": 20,
+          "S2": 42,
+          "S5": 2
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 53 iters \u00b7 0.013s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Hill Climbing",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.184,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 2023,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 3,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 3
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 2023 iters \u00b7 0.184s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Simulated Annealing",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.968,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 9720,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 1,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 1
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 9720 iters \u00b7 0.968s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Hybrid (BT + SA)",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.917,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 9818,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 2,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 2
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 9818 iters \u00b7 0.917s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "BT baseline",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.001,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 120,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 54,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 10,
+          "S1": 20,
+          "S2": 24
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 120 iters \u00b7 0.001s"
+      }
+    ]
+  },
+  "custom_dataset_1793443779": {
+    "dataset": "Custom Dataset",
+    "display_name": "Custom Dataset (204 Sessions, 29 Classes)",
+    "sessions_count": 204,
+    "classes_count": 29,
+    "rooms_count": 24,
+    "teachers_count": 31,
+    "timestamp": "2026-10-31 16:19:39",
+    "records": [
+      {
+        "Dataset": "Custom Dataset",
+        "Method": "Min-Conflicts",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.058,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 1,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 229,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S1": 112,
+          "S2": 69,
+          "S5": 48
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 1 iters \u00b7 0.058s"
+      }
+    ]
+  },
+  "small_dataset_1793443800": {
+    "dataset": "Small Dataset",
+    "display_name": "Small Dataset (45 Sessions, 3 Classes)",
+    "sessions_count": 45,
+    "classes_count": 3,
+    "rooms_count": 4,
+    "teachers_count": 6,
+    "timestamp": "2026-10-31 16:20:00",
+    "records": [
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Min-Conflicts",
+        "Success": false,
+        "Success Rate": "0/1",
+        "Avg Time (s)": 0.002,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 1,
+        "Avg Hard Violations": 2,
+        "Avg Soft Penalty (valid runs)": 62,
+        "Hard Breakdown": {
+          "H3": 2
+        },
+        "Soft Breakdown": {
+          "S4": 11,
+          "S1": 24,
+          "S2": 27
+        },
+        "Output Summary": "2 Clashes \u00b7 1 iters \u00b7 0.002s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "BT heuristics",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.012,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 53,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 77,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 13,
+          "S1": 20,
+          "S2": 42,
+          "S5": 2
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 53 iters \u00b7 0.012s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Hill Climbing",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.193,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 2023,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 3,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 3
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 2023 iters \u00b7 0.193s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Simulated Annealing",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.94,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 9720,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 1,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 1
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 9720 iters \u00b7 0.94s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Hybrid (BT + SA)",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.998,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 9818,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 2,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 2
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 9818 iters \u00b7 0.998s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "BT baseline",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.001,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 120,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 54,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 10,
+          "S1": 20,
+          "S2": 24
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 120 iters \u00b7 0.001s"
+      }
+    ]
+  },
+  "institutional_dataset_1793444153": {
+    "dataset": "Institutional Dataset",
+    "display_name": "Institutional Dataset (204 Sessions, 29 Classes)",
+    "sessions_count": 204,
+    "classes_count": 29,
+    "rooms_count": 24,
+    "teachers_count": 31,
+    "timestamp": "2026-10-31 16:25:53",
+    "records": [
+      {
+        "Dataset": "Institutional Dataset",
+        "Method": "Min-Conflicts",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.096,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 46,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 167,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S1": 94,
+          "S2": 39,
+          "S5": 34
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 46 iters \u00b7 0.096s"
+      },
+      {
+        "Dataset": "Institutional Dataset",
+        "Method": "BT heuristics",
+        "Success": false,
+        "Success Rate": "0/1",
+        "Avg Time (s)": 5.007,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 4118,
+        "Avg Hard Violations": 204,
+        "Avg Soft Penalty (valid runs)": 0,
+        "Hard Breakdown": {
+          "H7": 204
+        },
+        "Soft Breakdown": {},
+        "Output Summary": "204 Clashes \u00b7 4118 iters \u00b7 5.007s"
+      },
+      {
+        "Dataset": "Institutional Dataset",
+        "Method": "Hill Climbing",
+        "Success": false,
+        "Success Rate": "0/1",
+        "Avg Time (s)": 2.239,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 3000,
+        "Avg Hard Violations": 4,
+        "Avg Soft Penalty (valid runs)": 139,
+        "Hard Breakdown": {
+          "H2": 4
+        },
+        "Soft Breakdown": {
+          "S1": 86,
+          "S2": 27,
+          "S5": 26
+        },
+        "Output Summary": "4 Clashes \u00b7 3000 iters \u00b7 2.239s"
+      },
+      {
+        "Dataset": "Institutional Dataset",
+        "Method": "Simulated Annealing",
+        "Success": false,
+        "Success Rate": "0/1",
+        "Avg Time (s)": 5.183,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 6661,
+        "Avg Hard Violations": 13,
+        "Avg Soft Penalty (valid runs)": 201,
+        "Hard Breakdown": {
+          "H2": 13
+        },
+        "Soft Breakdown": {
+          "S1": 100,
+          "S2": 51,
+          "S5": 50
+        },
+        "Output Summary": "13 Clashes \u00b7 6661 iters \u00b7 5.183s"
+      },
+      {
+        "Dataset": "Institutional Dataset",
+        "Method": "Hybrid (BT + SA)",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 7.343,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 7949,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 199,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S1": 84,
+          "S2": 63,
+          "S5": 52
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 7949 iters \u00b7 7.343s"
+      },
+      {
+        "Dataset": "Institutional Dataset",
+        "Method": "BT baseline",
+        "Success": false,
+        "Success Rate": "0/1",
+        "Avg Time (s)": 2.0,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 292448,
+        "Avg Hard Violations": 204,
+        "Avg Soft Penalty (valid runs)": 0,
+        "Hard Breakdown": {
+          "H7": 204
+        },
+        "Soft Breakdown": {},
+        "Output Summary": "204 Clashes \u00b7 292448 iters \u00b7 2.0s"
+      }
+    ]
+  }
+}

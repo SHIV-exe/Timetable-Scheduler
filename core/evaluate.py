@@ -40,6 +40,7 @@ class Report:
             "hard_breakdown": dict(self.hard),
             "soft_breakdown": dict(self.soft),
             "conflicted_count": len(self.conflicted),
+            "conflicted_sids": list(self.conflicted),
             "messages": list(self.messages),
         }
 
@@ -94,9 +95,14 @@ def evaluate(data: Data, sessions: List[Session], asg: Dict[int, Tuple[int, int,
             R.messages.append(f"H4: Room '{rn}' is too small for class '{c.name}' ({c.strength} students)")
 
         # H5: Room type
-        if s.kind == "lab":
+        sub = data.subjects.get(s.subject)
+        target_room_type = sub.room_type if (sub and sub.room_type) else ("lab" if s.kind == "lab" else "classroom")
+        if target_room_type == "lab":
             is_valid_room = (room is not None and room.kind == "lab")
             expected_kind = "lab"
+        elif target_room_type == "tutorial_room":
+            is_valid_room = (room is not None and room.kind in ("tutorial_room", "classroom"))
+            expected_kind = "tutorial_room/classroom"
         else:
             is_valid_room = (room is not None and room.kind in ("classroom", "lecture_theatre", "tutorial_room"))
             expected_kind = "classroom/lecture_theatre/tutorial_room"
@@ -142,13 +148,61 @@ def evaluate(data: Data, sessions: List[Session], asg: Dict[int, Tuple[int, int,
             subj_day[(c.name, s.subject, d)] += 1
 
     # Binary constraints H1, H2, H3
-    for code, table, who in (("H1", t_at, "Teacher"), ("H2", c_at, "Class"), ("H3", r_at, "Room")):
-        for (name, (d, q)), sids in table.items():
-            if len(sids) > 1:
-                R.hard[code] += len(sids) - 1
+    sess_by_id = {s.sid: s for s in sessions}
+
+    # H1: Teacher clashing
+    for (name, (d, q)), sids in t_at.items():
+        if len(sids) > 1:
+            R.hard["H1"] += len(sids) - 1
+            R.conflicted.update(sids)
+            day_name = data.days[d] if 0 <= d < len(data.days) else f"Day {d}"
+            R.messages.append(f"H1: Teacher '{name}' has {len(sids)} sessions on {day_name} P{q+1}")
+
+    # H2: Class / Cohort clashing
+    for (name, (d, q)), sids in c_at.items():
+        if len(sids) > 1:
+            R.hard["H2"] += len(sids) - 1
+            R.conflicted.update(sids)
+            day_name = data.days[d] if 0 <= d < len(data.days) else f"Day {d}"
+            R.messages.append(f"H2: Class '{name}' has {len(sids)} sessions on {day_name} P{q+1}")
+
+    # H2 part 2: Parent cohort vs sub-section conflict
+    checked_parent_child = set()
+    for s1 in sessions:
+        if s1.parent_cls and s1.parent_cls != s1.cls and s1.sid in asg:
+            p_cls = s1.parent_cls
+            d1, p1, _ = asg[s1.sid]
+            for k1 in range(s1.length):
+                slot1 = (d1, p1 + k1)
+                for s2_sid in c_at.get((p_cls, slot1), []):
+                    if s2_sid != s1.sid:
+                        pair = tuple(sorted([s1.sid, s2_sid]))
+                        if pair not in checked_parent_child:
+                            checked_parent_child.add(pair)
+                            R.hard["H2"] += 1
+                            R.conflicted.add(s1.sid)
+                            R.conflicted.add(s2_sid)
+                            day_name = data.days[d1] if 0 <= d1 < len(data.days) else f"Day {d1}"
+                            R.messages.append(
+                                f"H2: Sub-batch '{s1.cls}' lab conflicts with parent cohort '{p_cls}' on {day_name} P{slot1[1]+1}"
+                            )
+
+    # H3: Room clashing / capacity
+    for (rn, (d, q)), sids in r_at.items():
+        if len(sids) > 1:
+            day_name = data.days[d] if 0 <= d < len(data.days) else f"Day {d}"
+            room = data.rooms.get(rn)
+            if room and room.kind == "lab":
+                # Multiple lab sections can share a lab room as long as total strength <= room.capacity
+                total_students = sum(data.classes[sess_by_id[sid].cls].strength for sid in sids if sess_by_id[sid].cls in data.classes)
+                if total_students > room.capacity:
+                    R.hard["H3"] += len(sids) - 1
+                    R.conflicted.update(sids)
+                    R.messages.append(f"H3: Lab '{rn}' overloaded with {total_students} students (capacity {room.capacity}) on {day_name} P{q+1}")
+            else:
+                R.hard["H3"] += len(sids) - 1
                 R.conflicted.update(sids)
-                day_name = data.days[d] if 0 <= d < len(data.days) else f"Day {d}"
-                R.messages.append(f"{code}: {who} '{name}' has {len(sids)} sessions on {day_name} P{q+1}")
+                R.messages.append(f"H3: Room '{rn}' has {len(sids)} sessions on {day_name} P{q+1}")
 
     # H8: Teacher maximum weekly load
     for tname, hrs in load.items():

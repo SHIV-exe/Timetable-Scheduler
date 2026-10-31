@@ -29,30 +29,34 @@ def test_custom_scheduling_with_split():
             "period_slots": period_slots
         },
         "subjects": [
-            {"code": "CS101", "name": "Programming", "hours": 4, "type": "theory"},
-            {"code": "CS102", "name": "Algorithms", "hours": 4, "type": "theory"},
-            {"code": "CS101P", "name": "Programming Lab", "hours": 2, "type": "lab"},
+            {"code": "CS101", "name": "Programming Foundations", "hours": 4, "type": "theory"},
+            {"code": "CS102", "name": "Data Structures", "hours": 4, "type": "theory"},
+            {"code": "CS101P", "name": "Programming Lab", "hours": 2, "type": "lab", "room_type": "lab"},
+            {"code": "COMM1", "name": "Communication Skills Lab", "hours": 2, "type": "lab", "room_type": "tutorial_room"},
         ],
         "rooms": [
             {"name": "LT-1", "capacity": 150, "type": "lecture_theatre"},
             {"name": "TR-1", "capacity": 40, "type": "tutorial_room"},
-            {"name": "CR-1", "capacity": 40, "type": "classroom"},
-            {"name": "Lab-1", "capacity": 30, "type": "lab"},
-            {"name": "Lab-2", "capacity": 30, "type": "lab"},
-            {"name": "Lab-3", "capacity": 30, "type": "lab"},
-            {"name": "Lab-4", "capacity": 30, "type": "lab"},
+            {"name": "CR-1", "capacity": 70, "type": "classroom"},
+            {"name": "Lab-90", "capacity": 90, "type": "lab"},
+            {"name": "Lab-60", "capacity": 60, "type": "lab"},
+            {"name": "Lab-36", "capacity": 36, "type": "lab"},
         ],
         "teachers": [
             {"name": "Prof. Smith", "subjects": ["CS101", "CS101P"], "max_load": 20, "unavailable": [], "avoid_periods": []},
             {"name": "Prof. Jones", "subjects": ["CS102", "CS101P"], "max_load": 20, "unavailable": [], "avoid_periods": []},
-            {"name": "Prof. Miller", "subjects": ["CS101", "CS101P"], "max_load": 20, "unavailable": [], "avoid_periods": []},
-            {"name": "Prof. Davis", "subjects": ["CS102", "CS101P"], "max_load": 20, "unavailable": [], "avoid_periods": []},
+            {"name": "Prof. Miller", "subjects": ["CS101", "CS101P", "COMM1"], "max_load": 20, "unavailable": [], "avoid_periods": []},
+            {"name": "Prof. Davis", "subjects": ["CS102", "COMM1"], "max_load": 20, "unavailable": [], "avoid_periods": []},
         ],
+        # Batch A of 120 students:
+        # - Theory lectures CS101 & CS102 conducted together in LT-1 for all 120 students
+        # - Lab CS101P & COMM1 divided into 4 sections of 30: A1, A2, A3, A4
         "classes": [
-            {"name": "A1", "strength": 30, "subjects": ["CS101", "CS102", "CS101P"], "lunch_period": 5},
-            {"name": "A2", "strength": 30, "subjects": ["CS101", "CS102", "CS101P"], "lunch_period": 5},
-            {"name": "A3", "strength": 30, "subjects": ["CS101", "CS102", "CS101P"], "lunch_period": 5},
-            {"name": "A4", "strength": 30, "subjects": ["CS101", "CS102", "CS101P"], "lunch_period": 5},
+            {"name": "Batch-A", "strength": 120, "subjects": ["CS101", "CS102"], "lunch_period": 5, "parent_class": None},
+            {"name": "A1", "strength": 30, "subjects": ["CS101P", "COMM1"], "lunch_period": 5, "parent_class": "Batch-A"},
+            {"name": "A2", "strength": 30, "subjects": ["CS101P", "COMM1"], "lunch_period": 5, "parent_class": "Batch-A"},
+            {"name": "A3", "strength": 30, "subjects": ["CS101P", "COMM1"], "lunch_period": 5, "parent_class": "Batch-A"},
+            {"name": "A4", "strength": 30, "subjects": ["CS101P", "COMM1"], "lunch_period": 5, "parent_class": "Batch-A"},
         ]
     }
 

@@ -422,7 +422,10 @@ def render_timetable_grid(data, sessions, asg, kind, name):
 
         for k in range(s.length):
             if 0 <= p + k < data.periods:
-                df.iat[p + k, d] = label
+                if k == 0:
+                    df.iat[p + k, d] = f"{label} [Consecutive Lab Block]" if s.length > 1 else label
+                else:
+                    df.iat[p + k, d] = f"↳ {s.subject} (Lab Block Cont.)"
 
     # Fill break periods and lunch period
     for q in data.break_periods:

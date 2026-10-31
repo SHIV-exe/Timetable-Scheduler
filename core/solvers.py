@@ -61,6 +61,7 @@ def run(
             node_limit=node_limit,
             time_limit=time_limit,
             rng=rng,
+            data=data,
         )
         asg = solver.solve()
         elapsed = time.perf_counter() - t0
@@ -79,6 +80,7 @@ def run(
             node_limit=node_limit,
             time_limit=time_limit,
             rng=rng,
+            data=data,
         )
         asg = solver.solve()
         elapsed = time.perf_counter() - t0
@@ -97,6 +99,7 @@ def run(
             node_limit=node_limit,
             time_limit=time_limit,
             rng=rng,
+            data=data,
         )
         asg = solver.solve()
         elapsed = time.perf_counter() - t0
@@ -115,6 +118,7 @@ def run(
             node_limit=node_limit,
             time_limit=time_limit,
             rng=rng,
+            data=data,
         )
         asg = solver.solve()
         elapsed = time.perf_counter() - t0
@@ -133,6 +137,7 @@ def run(
             max_restarts=5,
             time_limit=time_limit,
             trace=trace,
+            data=data,
         )
         elapsed = time.perf_counter() - t0
         return Result(asg=asg, success=success, work=iters, time_taken=elapsed, trace=trace)
@@ -140,7 +145,7 @@ def run(
     elif "simulated annealing" in algo_norm or algo_norm == "sa":
         # Initialize with greedy start or fast min-conflicts attempt
         trace: List[int] = []
-        init_st = greedy_init(sessions, domains, rng)
+        init_st = greedy_init(sessions, domains, rng, data=data)
         start_asg = dict(init_st.asg)
         best_asg, steps, trace = anneal(
             data=data,
