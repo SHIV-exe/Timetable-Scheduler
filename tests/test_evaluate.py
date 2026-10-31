@@ -159,3 +159,20 @@ def test_s5_consecutive_teacher_penalty(base_data):
     rep = evaluate(base_data, sessions, asg)
 
     assert rep.soft["S5"] == 1 * W["S5"]
+
+
+def test_h2_parent_cohort_subbatch_clash(base_data):
+    """Sub-batch C1-A has a lab while parent cohort C1 has a lecture at the same time -> H2 violation."""
+    base_data.classes["C1-A"] = SchoolClass(name="C1-A", strength=15, subjects=["LAB1"], lunch_period=4, parent_class="C1")
+    s_parent = Session(sid=0, cls="C1", subject="MATH", teacher="T1", kind="theory", length=1, idx=0)
+    s_child = Session(sid=1, cls="C1-A", subject="LAB1", teacher="T2", kind="lab", length=2, idx=0, parent_cls="C1")
+    sessions = [s_parent, s_child]
+
+    # s_child is at Monday P1-P2 (periods 0 and 1)
+    # s_parent is placed at Monday P1 (period 0)
+    asg = {0: (0, 0, "R1"), 1: (0, 0, "L1")}
+    rep = evaluate(base_data, sessions, asg)
+
+    assert rep.hard["H2"] >= 1
+    assert any("H2: Sub-batch 'C1-A' lab conflicts with parent cohort 'C1'" in m for m in rep.messages)
+

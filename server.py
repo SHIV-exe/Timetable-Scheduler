@@ -206,8 +206,9 @@ def api_suggest(req: SuggestRequest):
         trial_asg[req.sid] = v
         trial_rep = evaluate(data_obj, sessions, trial_asg)
 
-        # Check if hard violations increased
-        if trial_rep.hard_total <= base_rep.hard_total:
+        # Require 0 hard violations (or no increase if timetable had pre-existing violations)
+        is_clean = (trial_rep.hard_total == 0) if base_rep.hard_total == 0 else (trial_rep.hard_total <= base_rep.hard_total)
+        if is_clean:
             suggestions.append({
                 "day_idx": v[0],
                 "day_name": data_obj.days[v[0]],

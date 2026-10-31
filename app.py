@@ -1455,13 +1455,124 @@ def main():
 
             st.info(f"Selected Session: **{target_sess.subject}** for **{target_sess.cls}** (Duration: {target_sess.length} Hr{'s' if target_sess.length > 1 else ''}, Faculty: {target_sess.teacher}). Current Assignment: `{cur_desc}`")
 
+            # Identify child sections and parent class
+            child_classes = {c.name for c in data.classes.values() if getattr(c, 'parent_class', None) == target_sess.cls}
+            parent_class = getattr(target_sess, 'parent_cls', None) or getattr(data.classes.get(target_sess.cls, None), 'parent_class', None)
+
+            # Target Day
+            cur_d_idx = cur_assignment[0] if cur_assignment else 0
+            if "edit_target_day_val" not in st.session_state or st.session_state.get("last_selected_sid") != selected_sid:
+                st.session_state["edit_target_day_val"] = cur_d_idx
+                st.session_state["edit_target_p_val"] = cur_assignment[1] if cur_assignment else 0
+                st.session_state["edit_target_r_val"] = cur_assignment[2] if cur_assignment else sorted(list(data.rooms.keys()))[0]
+                st.session_state["last_selected_sid"] = selected_sid
+
             e1, e2, e3 = st.columns(3)
             with e1:
-                edit_day = st.selectbox("Target Day", range(len(data.days)), format_func=lambda i: data.days[i], key="edit_target_day")
+                edit_day = st.selectbox(
+                    "Target Day",
+                    range(len(data.days)),
+                    index=st.session_state["edit_target_day_val"],
+                    format_func=lambda i: data.days[i],
+                    key="edit_target_day_sb",
+                )
+                st.session_state["edit_target_day_val"] = edit_day
+
+            # Analyze periods on edit_day
+            period_status = {}
+            valid_periods = list(range(data.periods - target_sess.length + 1))
+            c_info = data.classes.get(target_sess.cls)
+            lunch_p = (c_info.lunch_period if c_info else -1)
+
+            # Map sessions on edit_day
+            day_occupants = []
+            for other in sessions:
+                if other.sid == selected_sid or other.sid not in asg:
+                    continue
+                loc = asg[other.sid]
+                if loc[0] == edit_day:
+                    day_occupants.append((other, loc[1], loc[2]))
+
+            for p in valid_periods:
+                clash_reasons = []
+                # Check breaks & lunch
+                for k in range(target_sess.length):
+                    q = p + k
+                    if q in data.break_periods:
+                        clash_reasons.append("Break Period")
+                    elif q == lunch_p:
+                        clash_reasons.append("Lunch Period")
+
+                # Check other sessions
+                for other, other_p, other_r in day_occupants:
+                    if max(p, other_p) < min(p + target_sess.length, other_p + other.length):
+                        if other.teacher == target_sess.teacher:
+                            clash_reasons.append(f"Faculty ({other.teacher}) Busy")
+                        if other.cls == target_sess.cls:
+                            clash_reasons.append(f"{other.cls} ({other.subject})")
+                        if other.cls in child_classes:
+                            clash_reasons.append(f"Sub-section {other.cls} Lab ({other.subject})")
+                        if parent_class and other.cls == parent_class:
+                            clash_reasons.append(f"Parent {parent_class} Lecture ({other.subject})")
+
+                if clash_reasons:
+                    period_status[p] = (False, clash_reasons[0])
+                else:
+                    period_status[p] = (True, "Free")
+
+            def format_period_opt(p):
+                ok, reason = period_status.get(p, (True, "Free"))
+                icon = "✅ Free" if ok else f"🚫 {reason}"
+                return f"P{p+1} ({9+p}:00) — {icon}"
+
             with e2:
-                edit_period = st.selectbox("Target Start Period", range(data.periods), format_func=lambda i: f"P{i+1} ({9+i}:00)", key="edit_target_period")
+                cur_p_sel = st.session_state.get("edit_target_p_val", 0)
+                if cur_p_sel not in valid_periods:
+                    cur_p_sel = valid_periods[0] if valid_periods else 0
+                p_idx = valid_periods.index(cur_p_sel) if cur_p_sel in valid_periods else 0
+                edit_period = st.selectbox(
+                    "Target Start Period",
+                    valid_periods,
+                    index=p_idx,
+                    format_func=format_period_opt,
+                    key="edit_target_period_sb",
+                )
+                st.session_state["edit_target_p_val"] = edit_period
+
+            # Analyze rooms
+            all_rooms = sorted(list(data.rooms.keys()))
+            sub_meta = data.subjects.get(target_sess.subject)
+            expected_room_kind = sub_meta.room_type if (sub_meta and sub_meta.room_type) else ("lab" if target_sess.kind == "lab" else "classroom")
+
+            def format_room_opt(r_name):
+                r_obj = data.rooms.get(r_name)
+                if not r_obj:
+                    return r_name
+                occ_by = [
+                    other for other, other_p, other_r in day_occupants
+                    if other_r == r_name and max(edit_period, other_p) < min(edit_period + target_sess.length, other_p + other.length)
+                ]
+                notes = []
+                if r_obj.capacity < (c_info.strength if c_info else 0):
+                    notes.append("Small Cap")
+                if expected_room_kind == "lab" and r_obj.kind != "lab":
+                    notes.append("Not Lab")
+                if occ_by:
+                    notes.append(f"Occupied: {occ_by[0].cls}")
+                tag = f"🚫 {', '.join(notes)}" if notes else "✅ Available"
+                return f"{r_name} ({r_obj.kind}, {r_obj.capacity}p) — {tag}"
+
             with e3:
-                edit_room = st.selectbox("Target Room", sorted(list(data.rooms.keys())), key="edit_target_room")
+                cur_r_sel = st.session_state.get("edit_target_r_val", all_rooms[0])
+                r_idx = all_rooms.index(cur_r_sel) if cur_r_sel in all_rooms else 0
+                edit_room = st.selectbox(
+                    "Target Room",
+                    all_rooms,
+                    index=r_idx,
+                    format_func=format_room_opt,
+                    key="edit_target_room_sb",
+                )
+                st.session_state["edit_target_r_val"] = edit_room
 
             trial_asg = dict(asg)
             trial_asg[selected_sid] = (edit_day, edit_period, edit_room)
@@ -1477,32 +1588,96 @@ def main():
             </div>
             """, unsafe_allow_html=True)
 
-            new_problems = [m for m in after_rep.messages if m not in before_rep.messages]
-            if new_problems:
-                for m in new_problems:
-                    st.error(f"Conflict: {m}")
+            has_parent_child_clash = any("H2: Sub-batch" in m or "parent cohort" in m for m in after_rep.messages)
+
+            # Check if an occupant exists at the target slot for a potential swap
+            target_occupants = [
+                other for other, other_p, other_r in day_occupants
+                if max(edit_period, other_p) < min(edit_period + target_sess.length, other_p + other.length)
+            ]
+            swap_candidate = target_occupants[0] if target_occupants else None
+
+            if after_rep.hard_total > 0:
+                if has_parent_child_clash:
+                    st.error(
+                        "⚠️ **Mutual Exclusion Clash Detected:** When a sub-section (A1, A2, or A3) is attending a laboratory session, "
+                        "the parent cohort (Batch A) cannot be scheduled for any theory lecture at the same time. "
+                        "The timetable must strictly preserve synchronized batch availability."
+                    )
+                for m in after_rep.messages:
+                    st.markdown(f"<div style='color: #dc2626; font-size: 0.85rem; font-family: monospace;'>&bull; {m}</div>", unsafe_allow_html=True)
+
+                if swap_candidate and cur_assignment:
+                    st.markdown("---")
+                    st.markdown(f"**Slot Conflict Alternative:** Slot is currently occupied by **{swap_candidate.subject} ({swap_candidate.cls})**.")
+                    swap_asg = dict(asg)
+                    swap_asg[selected_sid] = asg[swap_candidate.sid]
+                    swap_asg[swap_candidate.sid] = cur_assignment
+                    swap_rep = evaluate(data, sessions, swap_asg)
+                    if swap_rep.hard_total == 0:
+                        if st.button(f"🔄 Execute Conflict-Free Swap with {swap_candidate.subject} ({swap_candidate.cls})", key="btn_swap_exec", use_container_width=True):
+                            st.session_state.history.append(dict(asg))
+                            st.session_state.asg = swap_asg
+                            st.session_state.report = swap_rep
+                            st.session_state.move_log.append(f"Swapped {target_sess.subject} ({target_sess.cls}) with {swap_candidate.subject} ({swap_candidate.cls})")
+                            st.success("Swap executed cleanly with 0 hard violations!")
+                            st.rerun()
+                    else:
+                        st.caption(f"Direct swap is also infeasible ({swap_rep.hard_total} violations). Use slot suggestions below.")
+
+                st.warning("⚠️ **Apply Move is DISABLED** while hard clashes are active. Select a clash-free slot or pick from recommendations below.")
+                st.button("Apply Move (Blocked)", disabled=True, use_container_width=True)
+
             else:
-                st.success("No new hard constraints violated. Move is clash-free!")
+                st.success("✅ **100% Clash-Free Placement!** Zero constraint violations created. Safe to apply.")
+                btn_col1, btn_col2 = st.columns([1, 1])
+                with btn_col1:
+                    if st.button("Apply Move", type="primary", use_container_width=True):
+                        st.session_state.history.append(dict(asg))
+                        st.session_state.asg = trial_asg
+                        st.session_state.report = after_rep
+                        new_desc = f"{data.days[edit_day]} P{edit_period+1} in {edit_room}"
+                        st.session_state.move_log.append(f"Moved {target_sess.subject} ({target_sess.cls}): {cur_desc} → {new_desc}")
+                        st.success(f"Move committed successfully! {target_sess.subject} is now scheduled at {new_desc}.")
+                        st.rerun()
 
-            btn_col1, btn_col2 = st.columns([1, 1])
-            with btn_col1:
-                if st.button("Apply Move", use_container_width=True):
-                    st.session_state.history.append(dict(asg))
-                    st.session_state.asg = trial_asg
-                    st.session_state.report = after_rep
-                    new_desc = f"{data.days[edit_day]} P{edit_period+1} in {edit_room}"
-                    st.session_state.move_log.append(f"Moved {target_sess.subject} ({target_sess.cls}): {cur_desc} → {new_desc}")
-                    st.success(f"Move committed successfully! {target_sess.subject} is now scheduled at {new_desc}. All grids in Tab 3 and exports in Tab 5 are updated.")
-                    st.rerun()
+                with btn_col2:
+                    if st.session_state.history and st.button("Undo Last Move", use_container_width=True):
+                        st.session_state.asg = st.session_state.history.pop()
+                        st.session_state.report = evaluate(data, sessions, st.session_state.asg)
+                        if st.session_state.move_log:
+                            st.session_state.move_log.pop()
+                        st.info("Reverted schedule to previous state.")
+                        st.rerun()
 
-            with btn_col2:
-                if st.session_state.history and st.button("Undo Last Move", use_container_width=True):
-                    st.session_state.asg = st.session_state.history.pop()
-                    st.session_state.report = evaluate(data, sessions, st.session_state.asg)
-                    if st.session_state.move_log:
-                        st.session_state.move_log.pop()
-                    st.info("Reverted schedule to previous state.")
-                    st.rerun()
+            # Smart Slot Recommendations Box
+            with st.expander("💡 Verified Clash-Free Slot Suggestions for this Session", expanded=False):
+                domains = st.session_state.domains or build_domains(data, sessions)
+                dom = domains.get(selected_sid, [])
+                suggestions = []
+                for v in dom:
+                    t_asg = dict(asg)
+                    t_asg[selected_sid] = v
+                    t_rep = evaluate(data, sessions, t_asg)
+                    if t_rep.hard_total == 0:
+                        suggestions.append((v, t_rep.soft_total))
+                suggestions.sort(key=lambda x: x[1])
+
+                if not suggestions:
+                    st.info("No conflict-free slots found for this session in the current schedule state.")
+                else:
+                    st.write(f"Found **{len(suggestions)}** clash-free slots. Select one to apply:")
+                    for idx, (slot_val, soft_cost) in enumerate(suggestions[:6]):
+                        d_val, p_val, r_val = slot_val
+                        s_col1, s_col2 = st.columns([3, 1])
+                        with s_col1:
+                            st.markdown(f"**{data.days[d_val]} Period {p_val+1}** in `{r_val}` *(Soft Penalty: {soft_cost})*")
+                        with s_col2:
+                            if st.button(f"Select Slot #{idx+1}", key=f"btn_pick_sug_{idx}"):
+                                st.session_state["edit_target_day_val"] = d_val
+                                st.session_state["edit_target_p_val"] = p_val
+                                st.session_state["edit_target_r_val"] = r_val
+                                st.rerun()
 
             if st.session_state.move_log:
                 st.markdown("#### Manual Move History")

@@ -426,7 +426,10 @@ function setupEventListeners() {
     syncEditInputsWithSelectedSession();
     runTrialEvaluation();
   });
-  elements.editDay.addEventListener('change', runTrialEvaluation);
+  elements.editDay.addEventListener('change', () => {
+    updatePeriodDropdown();
+    runTrialEvaluation();
+  });
   elements.editPeriod.addEventListener('change', runTrialEvaluation);
   elements.editRoom.addEventListener('change', runTrialEvaluation);
 
@@ -2517,6 +2520,9 @@ function generatePrintableScheduleHtml(perspective, entity) {
 // =============================================================================
 // Manual Editor (Calibration Tab)
 // =============================================================================
+// =============================================================================
+// Manual Editor (Calibration Tab)
+// =============================================================================
 function initManualEditor() {
   if (!state.currentData || state.sessions.length === 0) {
     elements.diffHard.textContent = '--';
@@ -2525,7 +2531,6 @@ function initManualEditor() {
   }
 
   const data = state.currentData;
-  const periodSlots = data.time.period_slots || [];
 
   // Populate sessions
   elements.editSession.innerHTML = state.sessions.map(s => {
@@ -2539,14 +2544,6 @@ function initManualEditor() {
     <option value="${idx}">${escapeHtml(d)}</option>
   `).join('');
 
-  // Populate periods with time names
-  elements.editPeriod.innerHTML = Array.from({ length: data.time.periods_per_day }, (_, i) => {
-    const p = i + 1;
-    const slotObj = periodSlots.find(s => s.period === p);
-    const label = slotObj ? `Period ${p} (${slotObj.name})` : `Period ${p}`;
-    return `<option value="${i}">${escapeHtml(label)}</option>`;
-  }).join('');
-
   // Populate rooms
   elements.editRoom.innerHTML = data.rooms.map(r => `
     <option value="${escapeHtml(r.name)}">${escapeHtml(r.name)} (${r.capacity} cap, ${r.type})</option>
@@ -2556,13 +2553,117 @@ function initManualEditor() {
   runTrialEvaluation();
 }
 
+function updatePeriodDropdown() {
+  if (!state.currentData || !elements.editSession || !elements.editSession.value) return;
+  const data = state.currentData;
+  const sid = parseInt(elements.editSession.value, 10);
+  const sess = state.sessions.find(s => s.sid === sid);
+  if (!sess) return;
+
+  const targetDay = parseInt(elements.editDay.value, 10);
+  const periodSlots = data.time.period_slots || [];
+  const breakPeriods = new Set(data.time.break_periods || []);
+  const classObj = data.classes ? data.classes.find(c => c.name === sess.cls) : null;
+  const lunchPeriod = classObj ? (classObj.lunch_period - 1) : -1;
+
+  // Identify child sections of sess.cls (if any)
+  const childClasses = new Set();
+  if (data.classes) {
+    data.classes.forEach(c => {
+      const p = c.parent_class || (c.parent_batch && c.parent_batch !== c.name ? c.parent_batch : null);
+      if (p === sess.cls) childClasses.add(c.name);
+    });
+  }
+
+  // Identify parent cohort of sess.cls (if any)
+  let parentClass = sess.parent_cls || null;
+  if (!parentClass && classObj) {
+    parentClass = classObj.parent_class || (classObj.parent_batch && classObj.parent_batch !== classObj.name ? classObj.parent_batch : null);
+  }
+
+  const curVal = state.asg[sid];
+  const selectedPeriod = elements.editPeriod.value !== '' ? parseInt(elements.editPeriod.value, 10) : (curVal ? curVal[1] : 0);
+
+  // Map out occupancies on targetDay
+  const busyByPeriod = {};
+  state.sessions.forEach(other => {
+    if (other.sid === sid) return;
+    const loc = state.asg[other.sid];
+    if (!loc || loc[0] !== targetDay) return;
+    const [, startP] = loc;
+    for (let k = 0; k < other.length; k++) {
+      const p = startP + k;
+      if (!busyByPeriod[p]) busyByPeriod[p] = [];
+      busyByPeriod[p].push(other);
+    }
+  });
+
+  const periodOptions = [];
+  for (let i = 0; i < data.time.periods_per_day; i++) {
+    const p = i + 1;
+    const slotObj = periodSlots.find(s => s.period === p);
+    const timeName = slotObj ? slotObj.name : `Period ${p}`;
+
+    let isClash = false;
+    let clashReason = '';
+
+    if (i + sess.length > data.time.periods_per_day) {
+      isClash = true;
+      clashReason = 'Exceeds Day';
+    } else {
+      for (let k = 0; k < sess.length; k++) {
+        const slotIdx = i + k;
+        if (breakPeriods.has(slotIdx + 1) || slotIdx === lunchPeriod) {
+          isClash = true;
+          clashReason = slotIdx === lunchPeriod ? 'Lunch' : 'Break';
+          break;
+        }
+
+        const occupants = busyByPeriod[slotIdx] || [];
+        for (const occ of occupants) {
+          if (occ.teacher === sess.teacher) {
+            isClash = true;
+            clashReason = `Teacher (${occ.teacher}) Busy`;
+            break;
+          }
+          if (occ.cls === sess.cls) {
+            isClash = true;
+            clashReason = `${occ.cls} Busy`;
+            break;
+          }
+          if (childClasses.has(occ.cls)) {
+            isClash = true;
+            clashReason = `Section ${occ.cls} Lab`;
+            break;
+          }
+          if (parentClass && occ.cls === parentClass) {
+            isClash = true;
+            clashReason = `Parent ${parentClass} Lecture`;
+            break;
+          }
+        }
+        if (isClash) break;
+      }
+    }
+
+    const badge = isClash ? `🚫 ${clashReason}` : '✅ Clash-Free';
+    const isSelected = (i === selectedPeriod);
+    periodOptions.push(`<option value="${i}" ${isSelected ? 'selected' : ''}>P${p} (${timeName}) &mdash; ${badge}</option>`);
+  }
+
+  elements.editPeriod.innerHTML = periodOptions.join('');
+}
+
 function syncEditInputsWithSelectedSession() {
   const sid = parseInt(elements.editSession.value, 10);
   const curVal = state.asg[sid];
   if (curVal) {
     elements.editDay.value = curVal[0];
+    updatePeriodDropdown();
     elements.editPeriod.value = curVal[1];
     elements.editRoom.value = curVal[2];
+  } else {
+    updatePeriodDropdown();
   }
 }
 
@@ -2585,6 +2686,7 @@ async function runTrialEvaluation() {
       }),
     });
     const rep = await res.json();
+    state.trialReport = rep;
 
     const baseHard = state.report ? state.report.hard_total : 0;
     const baseSoft = state.report ? state.report.soft_total : 0;
@@ -2598,14 +2700,54 @@ async function runTrialEvaluation() {
     elements.diffSoft.textContent = (dSoft >= 0 ? `+${dSoft}` : `${dSoft}`);
     elements.diffSoft.style.color = dSoft > 0 ? 'var(--pastel-red-text)' : (dSoft < 0 ? 'var(--pastel-green-text)' : 'inherit');
 
-    if (rep.messages.length > 0) {
-      elements.trialConflictAlerts.innerHTML = rep.messages.map(m => `
+    const hasParentChildClash = rep.messages.some(m => m.includes('H2: Sub-batch') || m.includes('parent cohort'));
+
+    // Check if slot is occupied by another session that could be swapped
+    const targetOccupant = state.sessions.find(other => {
+      if (other.sid === sid) return false;
+      const loc = state.asg[other.sid];
+      if (!loc) return false;
+      return loc[0] === targetDay && loc[1] === targetPeriod;
+    });
+
+    if (rep.hard_total > 0) {
+      let banner = '';
+      if (hasParentChildClash) {
+        banner = `<div style="background: rgba(220, 38, 38, 0.15); border-left: 4px solid var(--pastel-red); padding: 8px 12px; margin-bottom: 8px; border-radius: 4px; font-size: 0.82rem; color: var(--pastel-red-text);">
+          <strong>⚠️ Mutual Exclusion Clash:</strong> When a sub-section (A1, A2, A3) has a lab, parent batch A cannot have any theory lecture. Move is blocked to protect timetable integrity.
+        </div>`;
+      }
+
+      let swapHtml = '';
+      if (targetOccupant) {
+        swapHtml = `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-light);">
+          <span style="font-size:0.8rem; color:var(--text-secondary);">Occupied by <strong>${escapeHtml(targetOccupant.subject)} (${escapeHtml(targetOccupant.cls)})</strong>.</span>
+          <button class="btn btn-secondary btn-sm" style="margin-left: 8px; padding: 2px 10px; font-size: 0.78rem;" onclick="window.handleSwapMove(${targetOccupant.sid})">
+            🔄 Swap with this session
+          </button>
+        </div>`;
+      }
+
+      elements.trialConflictAlerts.innerHTML = banner + rep.messages.map(m => `
         <div style="font-size:0.75rem; color:var(--pastel-red-text); margin-bottom:4px; font-family:var(--font-mono);">
           &bull; ${escapeHtml(m)}
         </div>
-      `).join('');
+      `).join('') + swapHtml;
+
+      if (elements.btnApplyMove) {
+        elements.btnApplyMove.disabled = true;
+        elements.btnApplyMove.style.opacity = '0.5';
+        elements.btnApplyMove.style.cursor = 'not-allowed';
+        elements.btnApplyMove.title = 'Apply Move is disabled because this placement creates constraint violations.';
+      }
     } else {
-      elements.trialConflictAlerts.innerHTML = `<span style="font-size:0.75rem; color:var(--pastel-green-text);">Zero conflicts created by trial assignment.</span>`;
+      elements.trialConflictAlerts.innerHTML = `<span style="font-size:0.8rem; color:var(--pastel-green-text); font-weight:600;">&#10003; 100% Clash-Free: Zero conflicts created by trial assignment. Safe to apply.</span>`;
+      if (elements.btnApplyMove) {
+        elements.btnApplyMove.disabled = false;
+        elements.btnApplyMove.style.opacity = '1';
+        elements.btnApplyMove.style.cursor = 'pointer';
+        elements.btnApplyMove.title = 'Apply this clash-free move';
+      }
     }
   } catch (err) {
     console.error(err);
@@ -2613,6 +2755,10 @@ async function runTrialEvaluation() {
 }
 
 function handleApplyMove() {
+  if (state.trialReport && state.trialReport.hard_total > 0) {
+    showNotice(`Cannot apply move: This placement introduces ${state.trialReport.hard_total} clash(es). Sub-sections and parent batches cannot conflict.`, 'red');
+    return;
+  }
   const sid = parseInt(elements.editSession.value, 10);
   const targetDay = parseInt(elements.editDay.value, 10);
   const targetPeriod = parseInt(elements.editPeriod.value, 10);
@@ -2633,10 +2779,42 @@ function handleApplyMove() {
     state.report = rep;
     elements.metricHard.textContent = rep.hard_total;
     elements.metricSoft.textContent = rep.soft_total;
-    showNotice(`Applied manual placement for session #${sid}.`, 'green');
+    showNotice(`Applied clash-free placement for session #${sid}.`, 'green');
     initManualEditor();
   });
 }
+
+window.handleSwapMove = async function(otherSid) {
+  const sid = parseInt(elements.editSession.value, 10);
+  const curVal = state.asg[sid];
+  const otherVal = state.asg[otherSid];
+  if (!curVal || !otherVal) return;
+
+  const trialAsg = { ...state.asg, [sid]: otherVal, [otherSid]: curVal };
+  try {
+    const res = await fetch('/api/evaluate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: state.currentData, asg: trialAsg }),
+    });
+    const rep = await res.json();
+    if (rep.hard_total > 0) {
+      showNotice(`Cannot swap: Swapping these sessions causes ${rep.hard_total} conflict(s).`, 'red');
+      return;
+    }
+    state.history.push({ sid, oldVal: curVal, newVal: otherVal, swappedWith: { sid: otherSid, oldVal: otherVal, newVal: curVal } });
+    updateUndoCount();
+    state.asg[sid] = otherVal;
+    state.asg[otherSid] = curVal;
+    state.report = rep;
+    elements.metricHard.textContent = rep.hard_total;
+    elements.metricSoft.textContent = rep.soft_total;
+    showNotice('Sessions swapped successfully with zero clashes!', 'green');
+    initManualEditor();
+  } catch (err) {
+    showNotice(`Swap failed: ${err.message}`, 'red');
+  }
+};
 
 function handleUndoMove() {
   if (state.history.length === 0) return;
@@ -2644,6 +2822,9 @@ function handleUndoMove() {
   updateUndoCount();
 
   state.asg[last.sid] = last.oldVal;
+  if (last.swappedWith) {
+    state.asg[last.swappedWith.sid] = last.swappedWith.oldVal;
+  }
 
   fetch('/api/evaluate', {
     method: 'POST',
@@ -2695,6 +2876,7 @@ async function handleSuggestSlots() {
 
 window.applySuggestedSlot = function(day, period, room) {
   elements.editDay.value = day;
+  updatePeriodDropdown();
   elements.editPeriod.value = period;
   elements.editRoom.value = room;
   runTrialEvaluation();

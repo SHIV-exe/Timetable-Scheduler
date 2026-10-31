@@ -6,6 +6,7 @@ Handles 1-based indexing in external representations and 0-based indexing intern
 
 from dataclasses import dataclass, field
 import json
+import re
 from typing import Dict, List, Set, Tuple, Any, Optional
 
 
@@ -373,11 +374,19 @@ def load_from_dict(raw: Dict[str, Any]) -> Data:
             avoid_periods=avoid,
         )
 
+    all_class_names = {c["name"] for c in raw.get("classes", []) if isinstance(c, dict) and "name" in c}
     classes = {}
     for c in raw["classes"]:
         p_cls = c.get("parent_class")
         if not p_cls and c.get("parent_batch") and c.get("parent_batch") != c.get("name"):
             p_cls = c.get("parent_batch")
+        if not p_cls:
+            cname = c.get("name", "")
+            m = re.match(r"^(.*?)[-_\s]*(\d+)$", cname)
+            if m:
+                cand = m.group(1).strip()
+                if cand in all_class_names and cand != cname:
+                    p_cls = cand
 
         classes[c["name"]] = SchoolClass(
             name=c["name"],
