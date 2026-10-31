@@ -855,14 +855,18 @@ def main():
             feas_cols = st.columns(3)
             for i, c in enumerate(feas_checks):
                 with feas_cols[i % 3]:
-                    status_class = "tag-green" if c["passed"] else "tag-red"
-                    status_txt = "PASSED" if c["passed"] else "FAILED"
+                    status_class = "tag-green" if c.get("passed", False) else "tag-red"
+                    status_txt = "PASSED" if c.get("passed", False) else "FAILED"
+                    rule_txt = c.get("rule") or c.get("equation", "")
+                    detail_txt = str(c.get("detail", ""))
+                    if len(detail_txt) > 120:
+                        detail_txt = detail_txt[:117] + "..."
                     st.markdown(f"""
                     <div class="bento-card">
                         <span class="tag-badge {status_class}">{status_txt}</span>
-                        <h4 style="margin: 8px 0 4px 0;">{c['name']}</h4>
-                        <p style="color: #666; font-size: 0.85rem; margin-bottom: 4px;">{c['detail']}</p>
-                        <small style="color: #999;">{c['equation']}</small>
+                        <h4 style="margin: 8px 0 4px 0;">{html.escape(c.get('name', 'Check'))}</h4>
+                        <p style="color: #666; font-size: 0.85rem; margin-bottom: 4px;">{html.escape(detail_txt)}</p>
+                        <small style="color: #999;">{html.escape(rule_txt)}</small>
                     </div>
                     """, unsafe_allow_html=True)
 
