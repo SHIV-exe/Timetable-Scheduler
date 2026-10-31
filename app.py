@@ -959,10 +959,11 @@ def main():
         with entity_tab_faculty:
             fac_rows = []
             for t in st.session_state.data.teachers.values():
+                t_subs = getattr(t, "subjects", None) or getattr(t, "qualified", [])
                 fac_rows.append({
                     "Faculty Name": t.name,
                     "Max Weekly Load": f"{t.max_load} Hours",
-                    "Qualified Courses": ", ".join(t.qualified),
+                    "Qualified Courses": ", ".join(sorted(list(t_subs))),
                     "Unavailable Slots Count": len(t.unavailable),
                 })
             st.dataframe(pd.DataFrame(fac_rows), use_container_width=True)
@@ -984,12 +985,14 @@ def main():
         with entity_tab_subjects:
             sub_rows = []
             for s in st.session_state.data.subjects.values():
+                is_lab = (s.kind == "lab")
+                duration = 2 if is_lab else 1
                 sub_rows.append({
-                    "Course Code": s.name,
-                    "Course Title": s.title,
+                    "Course Code": s.code,
+                    "Course Title": s.name,
                     "Weekly Hours": s.hours,
                     "Course Type": s.kind.title(),
-                    "Session Block Duration": f"{s.length} Period{'s' if s.length > 1 else ''}",
+                    "Session Block Duration": f"{duration} Period{'s' if duration > 1 else ''}",
                 })
             st.dataframe(pd.DataFrame(sub_rows), use_container_width=True)
 
@@ -1155,7 +1158,8 @@ def main():
             elif view_kind == "teacher":
                 t_ent = data.teachers.get(clean_ent_name)
                 max_l = t_ent.max_load if t_ent else 14
-                qual_str = ", ".join(t_ent.qualified) if t_ent else "N/A"
+                t_subs = getattr(t_ent, "subjects", None) or getattr(t_ent, "qualified", [])
+                qual_str = ", ".join(sorted(list(t_subs))) if t_subs else "N/A"
                 assigned_count = len([s for s in sessions if s.teacher.strip() == clean_ent_name and s.sid in asg])
                 st.markdown(f"""
                 <div style="background:#FFF; border:1px solid #D6D5D2; border-radius:6px; padding:10px 14px; margin-bottom:12px; font-size:0.88rem;">
