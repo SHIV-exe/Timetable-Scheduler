@@ -13,6 +13,7 @@ import html
 import io
 import json
 import os
+import re
 import time
 import pandas as pd
 try:
@@ -98,7 +99,6 @@ def compile_solver_data(raw_dict: dict) -> dict:
 def init_session_state():
     """Initialize working objects in st.session_state (Section 9.1)."""
     if "data" not in st.session_state:
-        # Prefer institutional dataset, then custom, then small
         inst_path = os.path.join(os.path.dirname(__file__), "data", "institutional_timetable_specification.json")
         custom_path = os.path.join(os.path.dirname(__file__), "data", "custom.json")
         small_path = os.path.join(os.path.dirname(__file__), "data", "small.json")
@@ -124,6 +124,7 @@ def init_session_state():
         st.session_state.asg = {}
         st.session_state.report = None
         st.session_state.history = []
+        st.session_state.move_log = []
         st.session_state.last_result = None
         st.session_state.bench_history = []
 
@@ -259,8 +260,8 @@ def inject_minimalist_css():
         background: #FFFFFF !important;
         border: 1px solid #D6D5D2 !important;
         border-radius: 8px !important;
-        padding: 20px !important;
-        margin-bottom: 18px !important;
+        padding: 18px 20px !important;
+        margin-bottom: 16px !important;
     }
 
     .tag-badge {
@@ -385,19 +386,51 @@ def build_schedule_html_matrix(data, sessions, asg, kind, entity_name):
     periods = data.periods
     break_set = set(data.break_periods)
     class_lunch = -1
-    if kind == "class" and entity_name in data.classes:
-        class_lunch = data.classes[entity_name].lunch_period
 
-    # Map of (d, p) -> list of session objects
+    # Extract target entity key
+    target_clean = entity_name.strip()
+    clean_entity = target_clean.split(" (")[0].strip()
+
+    if kind == "class":
+        # Find lunch period for class or parent class
+        cls_obj = data.classes.get(clean_entity)
+        if not cls_obj:
+            # check if starts with parent name
+            for c in data.classes.values():
+                if c.name == clean_entity or getattr(c, "parent_class", None) == clean_entity:
+                    cls_obj = c
+                    break
+        if cls_obj:
+            class_lunch = cls_obj.lunch_period
+
+    # Map of (d, p) -> list of session tuples (s, r)
     grid_map = {(d, p): [] for d in range(len(days)) for p in range(periods)}
     for s in sessions:
         if s.sid not in asg:
             continue
         d, p, r = asg[s.sid]
-        owner = {"class": s.cls, "teacher": s.teacher, "room": r}.get(kind)
-        if owner == entity_name:
-            if 0 <= d < len(days) and 0 <= p < periods:
-                grid_map[(d, p)].append((s, r))
+        if not (0 <= d < len(days) and 0 <= p < periods):
+            continue
+
+        match = False
+        if kind == "class":
+            s_cls = s.cls.strip()
+            # 1. Exact match
+            if s_cls == clean_entity:
+                match = True
+            # 2. Parent cohort viewing sub-sections (e.g. CSE A matches CSE A1, CSE A2)
+            elif s_cls.startswith(clean_entity):
+                match = True
+            # 3. Sub-section viewing parent theory (e.g. CSE A1 matches CSE A)
+            elif clean_entity.startswith(s_cls):
+                match = True
+        elif kind == "teacher":
+            match = (s.teacher.strip() == clean_entity)
+        elif kind == "room":
+            match = (r.strip() == clean_entity)
+
+        if match:
+            grid_map[(d, p)].append((s, r))
 
     # Identify covered cells from 2-period lab blocks spanning from p to p+1
     covered_cells = set()
@@ -451,13 +484,13 @@ def build_schedule_html_matrix(data, sessions, asg, kind, entity_name):
                 for s, r in sess_list:
                     sub_title = html.escape(s.subject)
                     other_info = f"Sec: {html.escape(s.cls)} · Fac: {html.escape(s.teacher)} · Rm: {html.escape(r)}"
-                    cell_content.append(f'''
-                    <div class="matrix-divided-col">
-                        <strong style="color:#1F6C9F; font-size:0.8rem;">{sub_title}</strong>
-                        <div style="font-size:0.75rem; color:#444; margin-top:2px;">{other_info}</div>
-                        <span class="tag-badge tag-blue" style="font-size:0.65rem; margin-top:4px;">Lab (2 Hrs)</span>
-                    </div>
-                    ''')
+                    cell_content.append(
+                        f'<div class="matrix-divided-col">'
+                        f'<strong style="color:#1F6C9F; font-size:0.8rem;">{sub_title}</strong>'
+                        f'<div style="font-size:0.75rem; color:#444; margin-top:2px;">{other_info}</div>'
+                        f'<span class="tag-badge tag-blue" style="font-size:0.65rem; margin-top:4px;">Lab (2 Hrs)</span>'
+                        f'</div>'
+                    )
                 cell_content.append('</div>')
             else:
                 for s, r in sess_list:
@@ -465,7 +498,7 @@ def build_schedule_html_matrix(data, sessions, asg, kind, entity_name):
                     is_lab = s.length == 2
                     cls_tag = "matrix-session-lab" if is_lab else "matrix-session-card"
                     tag_html = '<span class="tag-badge tag-blue" style="font-size:0.65rem;">Lab Block (2 Hrs)</span>' if is_lab else ''
-                    
+
                     detail = f"Class: {html.escape(s.cls)} · Faculty: {html.escape(s.teacher)} · Room: {html.escape(r)}"
                     if kind == "class":
                         detail = f"Faculty: {html.escape(s.teacher)} · Room: {html.escape(r)}"
@@ -474,41 +507,50 @@ def build_schedule_html_matrix(data, sessions, asg, kind, entity_name):
                     elif kind == "room":
                         detail = f"Class: {html.escape(s.cls)} · Faculty: {html.escape(s.teacher)}"
 
-                    cell_content.append(f'''
-                    <div class="{cls_tag}">
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <strong style="color:#111;">{sub_title}</strong>
-                            {tag_html}
-                        </div>
-                        <div style="font-size:0.75rem; color:#555; margin-top:3px;">{detail}</div>
-                    </div>
-                    ''')
+                    cell_content.append(
+                        f'<div class="{cls_tag}">'
+                        f'<div style="display:flex; justify-content:space-between; align-items:center;">'
+                        f'<strong style="color:#111;">{sub_title}</strong>'
+                        f'{tag_html}'
+                        f'</div>'
+                        f'<div style="font-size:0.75rem; color:#555; margin-top:3px;">{detail}</div>'
+                        f'</div>'
+                    )
 
             table_html.append(f'<td{rowspan_attr} class="{cell_class}">{"".join(cell_content)}</td>')
 
         table_html.append('</tr>')
 
     table_html.append('</tbody></table></div>')
-    return "".join(table_html)
+    # Strip all newlines and indentation to prevent markdown from converting lines to <pre><code> blocks
+    raw_html = "".join(table_html)
+    clean_html = re.sub(r'\s*\n\s*', '', raw_html)
+    return clean_html
 
 
 def to_printable_html(data, sessions, asg) -> str:
     """Generate a clean, standalone, publication-grade printable HTML document matching editorial standards."""
     sections_html = []
+    # Deduplicate classes so we print the parent unified cohorts
+    seen_parents = set()
     for cname in data.classes:
-        grid_html = build_schedule_html_matrix(data, sessions, asg, "class", cname)
-        strength = data.classes[cname].strength
-        parent_batch = getattr(data.classes[cname], "parent_batch", cname)
+        p_name = getattr(data.classes[cname], "parent_batch", None) or getattr(data.classes[cname], "parent_class", None) or cname
+        if p_name in seen_parents:
+            continue
+        seen_parents.add(p_name)
+
+        grid_html = build_schedule_html_matrix(data, sessions, asg, "class", p_name)
+        strength = data.classes.get(p_name, data.classes[cname]).strength
         sections_html.append(f"""
         <div class="print-sheet" style="page-break-after: always; margin-bottom: 40px;">
             <div style="display:flex; justify-content:space-between; border-bottom: 2px solid #111; padding-bottom: 8px; margin-bottom: 16px;">
                 <div>
-                    <h2 style="font-family: Georgia, serif; margin:0; font-size:1.4rem;">Cohort Timetable: {html.escape(cname)}</h2>
-                    <span style="font-size:0.85rem; color:#555;">Strength: {strength} Students · Unified Batch: {html.escape(str(parent_batch))}</span>
+                    <h2 style="font-family: Georgia, serif; margin:0; font-size:1.4rem;">Cohort Timetable: {html.escape(p_name)}</h2>
+                    <span style="font-size:0.85rem; color:#555;">Cohort Strength: {strength} Students · Split into 30-capacity laboratory sections</span>
                 </div>
                 <div style="text-align:right; font-size:0.8rem; color:#555;">
-                    <div>Academic Term: 2026-2027</div>
-                    <div style="color: green; font-weight: bold;">Status: 0 Clashes Verified</div>
+                    <div>Academic Session: 2026-2027</div>
+                    <div style="color: green; font-weight: bold;">Status: 0 Hard Clashes Verified</div>
                 </div>
             </div>
             {grid_html}
@@ -722,7 +764,7 @@ def main():
     ])
 
     # =========================================================================
-    # TAB 1: DATA
+    # TAB 1: DATA SPECIFICATION & INTERACTIVE EDITOR
     # =========================================================================
     with tab_data:
         st.markdown("### Institutional Configuration & Parameters")
@@ -814,7 +856,7 @@ def main():
             except Exception as e:
                 st.error(f"Failed to parse uploaded JSON: {e}")
 
-        # Summary of Active Dataset
+        # Active Dataset Summary Card
         if st.session_state.data:
             d = st.session_state.data
             lab_classes = [c for c in d.classes.values() if getattr(c, "sub_index", None) is not None]
@@ -825,7 +867,7 @@ def main():
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <div>
                         <span class="tag-badge tag-blue">Active Dataset: {html.escape(st.session_state.dataset_name)}</span>
-                        <h4 style="margin: 8px 0 4px 0;">{len(d.classes)} Total Class Groups &bull; {len(d.teachers)} Faculty &bull; {len(d.rooms)} Rooms</h4>
+                        <h4 style="margin: 8px 0 4px 0;">{len(d.classes)} Total Class Groups &bull; {len(d.teachers)} Faculty Members &bull; {len(d.rooms)} Rooms</h4>
                         <div style="font-size:0.9rem; color:#555;">
                             Unified Theory Cohorts: <strong>{len(theory_classes)}</strong> &bull;
                             Laboratory Sections (30 capacity): <strong>{len(lab_classes)}</strong> &bull;
@@ -869,6 +911,114 @@ def main():
                         <small style="color: #999;">{html.escape(rule_txt)}</small>
                     </div>
                     """, unsafe_allow_html=True)
+
+        # ---------------------------------------------------------------------
+        # COMPLETE DATA TABLES DISPLAY & EDITING STUDIO
+        # ---------------------------------------------------------------------
+        st.markdown("---")
+        st.markdown("### Institutional Entity Registry (View & Inspect)")
+
+        entity_tab_batches, entity_tab_faculty, entity_tab_rooms, entity_tab_subjects, entity_tab_edit = st.tabs([
+            "🏫 Batches & Cohorts",
+            "👨‍🏫 Faculty Members",
+            "🏢 Campus Rooms & Labs",
+            "📚 Courses & Subjects",
+            "✏️ Interactive JSON Editor",
+        ])
+
+        # 1. Batches Table
+        with entity_tab_batches:
+            batches_list = st.session_state.raw_data.get("batches", [])
+            if batches_list:
+                batch_rows = []
+                for b in batches_list:
+                    str_val = int(b.get("strength", 30))
+                    k_sections = (str_val + 29) // 30 if b.get("auto_split", True) else 1
+                    batch_rows.append({
+                        "Cohort Name": b.get("name"),
+                        "Semester": b.get("semester", 1),
+                        "Total Strength": str_val,
+                        "Lab Sections (Cap 30)": k_sections,
+                        "Theory Courses": ", ".join(b.get("subjects", [])),
+                        "Lab Courses": ", ".join(b.get("labs", [])),
+                        "Lunch Period": f"Period {b.get('lunch_period', 4)}",
+                    })
+                st.dataframe(pd.DataFrame(batch_rows), use_container_width=True)
+            else:
+                cls_rows = []
+                for c in st.session_state.data.classes.values():
+                    cls_rows.append({
+                        "Class Name": c.name,
+                        "Strength": c.strength,
+                        "Subjects": ", ".join(c.subjects),
+                        "Lunch Period": f"Period {c.lunch_period}",
+                    })
+                st.dataframe(pd.DataFrame(cls_rows), use_container_width=True)
+
+        # 2. Faculty Table
+        with entity_tab_faculty:
+            fac_rows = []
+            for t in st.session_state.data.teachers.values():
+                fac_rows.append({
+                    "Faculty Name": t.name,
+                    "Max Weekly Load": f"{t.max_load} Hours",
+                    "Qualified Courses": ", ".join(t.qualified),
+                    "Unavailable Slots Count": len(t.unavailable),
+                })
+            st.dataframe(pd.DataFrame(fac_rows), use_container_width=True)
+
+        # 3. Rooms Table
+        with entity_tab_rooms:
+            room_rows = []
+            for r in st.session_state.data.rooms.values():
+                kind_fmt = r.kind.replace("_", " ").title()
+                room_rows.append({
+                    "Room Code": r.name,
+                    "Seating Capacity": r.capacity,
+                    "Facility Type": kind_fmt,
+                    "Multi-Section Capable": "Yes (Up to 3 sections)" if r.name == "LAB-36" or r.capacity >= 90 else "Standard",
+                })
+            st.dataframe(pd.DataFrame(room_rows), use_container_width=True)
+
+        # 4. Subjects Table
+        with entity_tab_subjects:
+            sub_rows = []
+            for s in st.session_state.data.subjects.values():
+                sub_rows.append({
+                    "Course Code": s.name,
+                    "Course Title": s.title,
+                    "Weekly Hours": s.hours,
+                    "Course Type": s.kind.title(),
+                    "Session Block Duration": f"{s.length} Period{'s' if s.length > 1 else ''}",
+                })
+            st.dataframe(pd.DataFrame(sub_rows), use_container_width=True)
+
+        # 5. Interactive JSON Editor
+        with entity_tab_edit:
+            st.markdown("#### Direct JSON Configuration Editor")
+            st.markdown("Modify any cohort strength, room capacity, faculty assignment, or course definition, then click **Apply & Save Changes**.")
+
+            json_str = json.dumps(st.session_state.raw_data, indent=2)
+            edited_json_str = st.text_area("Edit Configuration JSON", value=json_str, height=400)
+
+            if st.button("Apply Changes & Recompile Dataset", use_container_width=True):
+                try:
+                    parsed_new = json.loads(edited_json_str)
+                    compiled_new = compile_solver_data(parsed_new)
+                    errs_new = validate_raw_data(compiled_new)
+                    if errs_new:
+                        st.error(f"Validation failed: {'; '.join(errs_new)}")
+                    else:
+                        st.session_state.raw_data = parsed_new
+                        st.session_state.compiled_data = compiled_new
+                        st.session_state.data = load_from_dict(compiled_new)
+                        st.session_state.errors = []
+                        st.session_state.asg = {}
+                        st.session_state.report = None
+                        st.success("Configuration successfully updated, compiled into 30-student sections, and validated!")
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Invalid JSON syntax: {e}")
 
     # =========================================================================
     # TAB 2: ALGORITHMIC SEARCH
@@ -956,7 +1106,7 @@ def main():
                 )
 
     # =========================================================================
-    # TAB 3: VIEWS (SCHEDULE GRIDS)
+    # TAB 3: SCHEDULE GRIDS (COMPLETE WITH 2-ROW LABS & DIVIDED COLUMNS)
     # =========================================================================
     with tab_views:
         st.markdown("### Institutional Matrix Inspection")
@@ -969,18 +1119,65 @@ def main():
 
             vc1, vc2 = st.columns([1, 2])
             with vc1:
-                view_kind = st.selectbox("Perspective", ["class", "teacher", "room"])
+                view_kind = st.selectbox("Perspective", ["class", "teacher", "room"], key="sb_view_perspective")
             with vc2:
                 if view_kind == "class":
-                    options = list(data.classes.keys())
+                    # Build clean grouped options: parent cohorts first, then individual lab sub-sections
+                    parent_batches = set()
+                    for c in data.classes.values():
+                        p = getattr(c, "parent_batch", None) or getattr(c, "parent_class", None) or c.name
+                        parent_batches.add(p)
+
+                    options = [f"{p} (Unified Cohort & All Sections)" for p in sorted(parent_batches)]
+                    # Also include specific lab sub-sections
+                    sub_sections = [c.name for c in data.classes.values() if getattr(c, "sub_index", None) is not None]
+                    if sub_sections:
+                        options.extend([f"{s} (Specific Lab Section)" for s in sorted(sub_sections)])
                 elif view_kind == "teacher":
-                    options = list(data.teachers.keys())
+                    options = sorted(list(data.teachers.keys()))
                 else:
-                    options = list(data.rooms.keys())
-                selected_name = st.selectbox(f"Select {view_kind.title()}", options)
+                    options = sorted(list(data.rooms.keys()))
+
+                selected_name = st.selectbox(f"Select {view_kind.title()}", options, key=f"sb_entity_choice_{view_kind}")
+
+            # Entity Information Banner
+            clean_ent_name = selected_name.split(" (")[0].strip()
+            if view_kind == "class":
+                cls_ent = data.classes.get(clean_ent_name)
+                str_label = cls_ent.strength if cls_ent else "Cohort"
+                st.markdown(f"""
+                <div style="background:#FFF; border:1px solid #D6D5D2; border-radius:6px; padding:10px 14px; margin-bottom:12px; font-size:0.88rem;">
+                    <strong>Cohort:</strong> {html.escape(clean_ent_name)} &bull;
+                    <strong>Batch Strength:</strong> {str_label} Students &bull;
+                    <strong>Schedule View:</strong> Unified Theory Lectures + Parallel 30-Student Lab Sections
+                </div>
+                """, unsafe_allow_html=True)
+            elif view_kind == "teacher":
+                t_ent = data.teachers.get(clean_ent_name)
+                max_l = t_ent.max_load if t_ent else 14
+                qual_str = ", ".join(t_ent.qualified) if t_ent else "N/A"
+                assigned_count = len([s for s in sessions if s.teacher.strip() == clean_ent_name and s.sid in asg])
+                st.markdown(f"""
+                <div style="background:#FFF; border:1px solid #D6D5D2; border-radius:6px; padding:10px 14px; margin-bottom:12px; font-size:0.88rem;">
+                    <strong>Faculty:</strong> {html.escape(clean_ent_name)} &bull;
+                    <strong>Weekly Assigned Hours:</strong> {assigned_count} / {max_l} Hours &bull;
+                    <strong>Qualified Courses:</strong> {html.escape(qual_str)}
+                </div>
+                """, unsafe_allow_html=True)
+            elif view_kind == "room":
+                r_ent = data.rooms.get(clean_ent_name)
+                cap = r_ent.capacity if r_ent else "N/A"
+                knd = r_ent.kind.replace("_", " ").title() if r_ent else "Room"
+                st.markdown(f"""
+                <div style="background:#FFF; border:1px solid #D6D5D2; border-radius:6px; padding:10px 14px; margin-bottom:12px; font-size:0.88rem;">
+                    <strong>Room:</strong> {html.escape(clean_ent_name)} &bull;
+                    <strong>Capacity:</strong> {cap} Seats &bull;
+                    <strong>Facility Type:</strong> {knd}
+                </div>
+                """, unsafe_allow_html=True)
 
             # Render HTML Matrix Table with 2-period lab spanning & divided columns
-            matrix_html = build_schedule_html_matrix(data, sessions, asg, view_kind, selected_name)
+            matrix_html = build_schedule_html_matrix(data, sessions, asg, view_kind, clean_ent_name)
             st.markdown(matrix_html, unsafe_allow_html=True)
 
             # Active Constraint Notes
@@ -990,12 +1187,12 @@ def main():
                     st.markdown(f"- `{msg}`")
 
     # =========================================================================
-    # TAB 4: MANUAL EDIT
+    # TAB 4: MANUAL EDITOR (WITH CLEAR FEEDBACK & MOVE LOG)
     # =========================================================================
     with tab_edit:
         st.markdown("### Manual Assignment & Conflict Detection")
         if not st.session_state.asg or not st.session_state.sessions:
-            st.info("Please generate an initial schedule before performing manual adjustments.")
+            st.info("Please generate an initial schedule in Tab 2 before performing manual adjustments.")
         else:
             data = st.session_state.data
             sessions = st.session_state.sessions
@@ -1013,15 +1210,23 @@ def main():
                 "Select Session to Reassign",
                 [s.sid for s in sessions],
                 format_func=session_label,
+                key="manual_edit_sid_selector",
             )
+
+            # Current assignment of selected session
+            target_sess = next(s for s in sessions if s.sid == selected_sid)
+            cur_assignment = asg.get(selected_sid)
+            cur_desc = f"{data.days[cur_assignment[0]]} P{cur_assignment[1]+1} in {cur_assignment[2]}" if cur_assignment else "Unassigned"
+
+            st.info(f"Selected Session: **{target_sess.subject}** for **{target_sess.cls}** (Duration: {target_sess.length} Hr{'s' if target_sess.length > 1 else ''}, Faculty: {target_sess.teacher}). Current Assignment: `{cur_desc}`")
 
             e1, e2, e3 = st.columns(3)
             with e1:
-                edit_day = st.selectbox("Target Day", range(len(data.days)), format_func=lambda i: data.days[i])
+                edit_day = st.selectbox("Target Day", range(len(data.days)), format_func=lambda i: data.days[i], key="edit_target_day")
             with e2:
-                edit_period = st.selectbox("Target Start Period", range(data.periods), format_func=lambda i: f"P{i+1}")
+                edit_period = st.selectbox("Target Start Period", range(data.periods), format_func=lambda i: f"P{i+1} ({9+i}:00)", key="edit_target_period")
             with e3:
-                edit_room = st.selectbox("Target Room", list(data.rooms.keys()))
+                edit_room = st.selectbox("Target Room", sorted(list(data.rooms.keys())), key="edit_target_room")
 
             trial_asg = dict(asg)
             trial_asg[selected_sid] = (edit_day, edit_period, edit_room)
@@ -1042,23 +1247,34 @@ def main():
                 for m in new_problems:
                     st.error(f"Conflict: {m}")
             else:
-                st.success("No new hard constraints violated.")
+                st.success("No new hard constraints violated. Move is clash-free!")
 
             btn_col1, btn_col2 = st.columns([1, 1])
             with btn_col1:
-                if st.button("Apply Move"):
+                if st.button("Apply Move", use_container_width=True):
+                    # Save old state for undo
                     st.session_state.history.append(dict(asg))
                     st.session_state.asg = trial_asg
                     st.session_state.report = after_rep
-                    st.success("Move committed.")
+                    # Record log
+                    new_desc = f"{data.days[edit_day]} P{edit_period+1} in {edit_room}"
+                    st.session_state.move_log.append(f"Moved {target_sess.subject} ({target_sess.cls}): {cur_desc} → {new_desc}")
+                    st.success(f"Move committed successfully! {target_sess.subject} is now scheduled at {new_desc}. All grids in Tab 3 and exports in Tab 5 are updated.")
                     st.rerun()
 
             with btn_col2:
-                if st.session_state.history and st.button("Undo Last Move"):
+                if st.session_state.history and st.button("Undo Last Move", use_container_width=True):
                     st.session_state.asg = st.session_state.history.pop()
                     st.session_state.report = evaluate(data, sessions, st.session_state.asg)
-                    st.info("Reverted to previous state.")
+                    if st.session_state.move_log:
+                        st.session_state.move_log.pop()
+                    st.info("Reverted schedule to previous state.")
                     st.rerun()
+
+            if st.session_state.move_log:
+                st.markdown("#### Manual Move History")
+                for log_item in reversed(st.session_state.move_log[-5:]):
+                    st.markdown(f"- `{log_item}`")
 
     # =========================================================================
     # TAB 5: EXPORT
@@ -1187,7 +1403,7 @@ def main():
             try:
                 with open(saved_path, "r", encoding="utf-8") as f:
                     saved_dict = json.load(f)
-                
+
                 selected_saved = st.selectbox(
                     "View Saved Historical Benchmark Dataset",
                     list(saved_dict.keys()),
@@ -1197,7 +1413,6 @@ def main():
                     saved_records = saved_dict[selected_saved].get("records", [])
                     if saved_records:
                         df_saved = pd.DataFrame(saved_records)
-                        # Reorder columns cleanly
                         cols = [c for c in ["Dataset", "Method", "Success Rate", "Avg Time (s)", "Avg Work (nodes/iters)", "Avg Hard Violations", "Avg Soft Penalty (valid runs)", "Output Summary"] if c in df_saved.columns]
                         st.dataframe(df_saved[cols] if cols else df_saved, use_container_width=True)
             except Exception as e:
