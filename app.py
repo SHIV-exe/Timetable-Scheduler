@@ -4,9 +4,9 @@ Conforms strictly to the architectural boundary:
 - Algorithm code lives strictly in core/ and never imports Streamlit.
 - Provides all required tabs: Data, Generate, Views, Edit, Export, and Empirical Benchmarks.
 - Styled according to the Premium Utilitarian Minimalism protocol.
-- Supports batch auto-splitting (30-student lab sections, combined theory),
-  consecutive 2-row lab spanning with divided columns for room sharing,
-  isolated timetable document printing, and live multi-dataset empirical benchmarks.
+- Features complete visual entity form editors (Batches, Faculty, Rooms, Subjects, Time)
+  matching the JavaScript studio interface, download JSON, batch auto-splitting,
+  consecutive 2-row lab spanning with divided columns, and live empirical benchmarks.
 """
 
 import html
@@ -32,6 +32,30 @@ from core.model import (
 )
 from core.evaluate import evaluate
 from core import solvers
+
+
+def ensure_batches_in_raw(raw: dict) -> dict:
+    """Ensure raw_data contains 'batches' list so the visual batch form editor works on all datasets."""
+    if not isinstance(raw, dict):
+        return raw
+
+    if "batches" not in raw or not raw["batches"]:
+        batches = []
+        for c in raw.get("classes", []):
+            theory_subs = list(c.get("subjects", []))
+            batches.append({
+                "name": c.get("name"),
+                "strength": int(c.get("strength", 30)),
+                "semester": c.get("semester", 1),
+                "sem_type": "odd",
+                "auto_split": True,
+                "lunch_period": c.get("lunch_period", 4),
+                "subjects": theory_subs,
+                "labs": [],
+                "teacher_map": dict(c.get("teacher_map", {})),
+            })
+        raw["batches"] = batches
+    return raw
 
 
 def compile_solver_data(raw_dict: dict) -> dict:
@@ -113,6 +137,7 @@ def init_session_state():
         else:
             raw = get_template_dict()
 
+        raw = ensure_batches_in_raw(raw)
         compiled_raw = compile_solver_data(raw)
         st.session_state.raw_data = raw
         st.session_state.compiled_data = compiled_raw
@@ -387,15 +412,12 @@ def build_schedule_html_matrix(data, sessions, asg, kind, entity_name):
     break_set = set(data.break_periods)
     class_lunch = -1
 
-    # Extract target entity key
     target_clean = entity_name.strip()
     clean_entity = target_clean.split(" (")[0].strip()
 
     if kind == "class":
-        # Find lunch period for class or parent class
         cls_obj = data.classes.get(clean_entity)
         if not cls_obj:
-            # check if starts with parent name
             for c in data.classes.values():
                 if c.name == clean_entity or getattr(c, "parent_class", None) == clean_entity:
                     cls_obj = c
@@ -403,7 +425,6 @@ def build_schedule_html_matrix(data, sessions, asg, kind, entity_name):
         if cls_obj:
             class_lunch = cls_obj.lunch_period
 
-    # Map of (d, p) -> list of session tuples (s, r)
     grid_map = {(d, p): [] for d in range(len(days)) for p in range(periods)}
     for s in sessions:
         if s.sid not in asg:
@@ -415,13 +436,10 @@ def build_schedule_html_matrix(data, sessions, asg, kind, entity_name):
         match = False
         if kind == "class":
             s_cls = s.cls.strip()
-            # 1. Exact match
             if s_cls == clean_entity:
                 match = True
-            # 2. Parent cohort viewing sub-sections (e.g. CSE A matches CSE A1, CSE A2)
             elif s_cls.startswith(clean_entity):
                 match = True
-            # 3. Sub-section viewing parent theory (e.g. CSE A1 matches CSE A)
             elif clean_entity.startswith(s_cls):
                 match = True
         elif kind == "teacher":
@@ -432,7 +450,6 @@ def build_schedule_html_matrix(data, sessions, asg, kind, entity_name):
         if match:
             grid_map[(d, p)].append((s, r))
 
-    # Identify covered cells from 2-period lab blocks spanning from p to p+1
     covered_cells = set()
     for (d, p), sess_list in grid_map.items():
         for s, r in sess_list:
@@ -455,7 +472,6 @@ def build_schedule_html_matrix(data, sessions, asg, kind, entity_name):
 
         for d_idx, d_name in enumerate(days):
             if (d_idx, p) in covered_cells:
-                # Cell is covered by a 2-period rowspan from period p-1
                 continue
 
             sess_list = grid_map[(d_idx, p)]
@@ -476,10 +492,8 @@ def build_schedule_html_matrix(data, sessions, asg, kind, entity_name):
                 table_html.append(f'<td{rowspan_attr} style="color:#AAA;">&mdash;</td>')
                 continue
 
-            # Render sessions inside cell
             cell_content = []
             if len(sess_list) > 1 and has_two_period_lab:
-                # Divided columns for parallel shared labs (e.g. Room 36)
                 cell_content.append('<div class="matrix-divided-container">')
                 for s, r in sess_list:
                     sub_title = html.escape(s.subject)
@@ -522,7 +536,6 @@ def build_schedule_html_matrix(data, sessions, asg, kind, entity_name):
         table_html.append('</tr>')
 
     table_html.append('</tbody></table></div>')
-    # Strip all newlines and indentation to prevent markdown from converting lines to <pre><code> blocks
     raw_html = "".join(table_html)
     clean_html = re.sub(r'\s*\n\s*', '', raw_html)
     return clean_html
@@ -531,7 +544,6 @@ def build_schedule_html_matrix(data, sessions, asg, kind, entity_name):
 def to_printable_html(data, sessions, asg) -> str:
     """Generate a clean, standalone, publication-grade printable HTML document matching editorial standards."""
     sections_html = []
-    # Deduplicate classes so we print the parent unified cohorts
     seen_parents = set()
     for cname in data.classes:
         p_name = getattr(data.classes[cname], "parent_batch", None) or getattr(data.classes[cname], "parent_class", None) or cname
@@ -734,6 +746,25 @@ def run_benchmark_on_dataset(raw_dict: dict, label: str, time_limit: float = 4.0
     return records
 
 
+def apply_and_recompile_raw_data(new_raw: dict, dataset_label: str = "Custom Dataset"):
+    """Recompile solver classes, validate, update session state, and refresh."""
+    new_raw = ensure_batches_in_raw(new_raw)
+    compiled = compile_solver_data(new_raw)
+    errs = validate_raw_data(compiled)
+    if errs:
+        st.session_state.errors = errs
+        return False, errs
+    else:
+        st.session_state.raw_data = new_raw
+        st.session_state.compiled_data = compiled
+        st.session_state.dataset_name = dataset_label
+        st.session_state.data = load_from_dict(compiled)
+        st.session_state.errors = []
+        st.session_state.asg = {}
+        st.session_state.report = None
+        return True, []
+
+
 def main():
     if st is None:
         print("Streamlit is not installed in the current environment.")
@@ -764,11 +795,12 @@ def main():
     ])
 
     # =========================================================================
-    # TAB 1: DATA SPECIFICATION & INTERACTIVE EDITOR
+    # TAB 1: DATA SPECIFICATION & VISUAL FORM EDITORS
     # =========================================================================
     with tab_data:
-        st.markdown("### Institutional Configuration & Parameters")
+        st.markdown("### Institutional Configuration Studio & Registry")
 
+        # Top Control Bar
         d_col1, d_col2, d_col3, d_col4 = st.columns(4)
 
         with d_col1:
@@ -777,14 +809,7 @@ def main():
                 if os.path.exists(path):
                     with open(path, "r", encoding="utf-8") as f:
                         raw = json.load(f)
-                    compiled = compile_solver_data(raw)
-                    st.session_state.raw_data = raw
-                    st.session_state.compiled_data = compiled
-                    st.session_state.dataset_name = "Institutional Specification"
-                    st.session_state.data = load_from_dict(compiled)
-                    st.session_state.errors = validate_raw_data(compiled)
-                    st.session_state.asg = {}
-                    st.session_state.report = None
+                    apply_and_recompile_raw_data(raw, "Institutional Specification")
                     st.rerun()
 
         with d_col2:
@@ -793,14 +818,7 @@ def main():
                 if os.path.exists(path):
                     with open(path, "r", encoding="utf-8") as f:
                         raw = json.load(f)
-                    compiled = compile_solver_data(raw)
-                    st.session_state.raw_data = raw
-                    st.session_state.compiled_data = compiled
-                    st.session_state.dataset_name = "Custom Dataset"
-                    st.session_state.data = load_from_dict(compiled)
-                    st.session_state.errors = validate_raw_data(compiled)
-                    st.session_state.asg = {}
-                    st.session_state.report = None
+                    apply_and_recompile_raw_data(raw, "Custom Dataset")
                     st.rerun()
 
         with d_col3:
@@ -809,14 +827,7 @@ def main():
                 if os.path.exists(path):
                     with open(path, "r", encoding="utf-8") as f:
                         raw = json.load(f)
-                    compiled = compile_solver_data(raw)
-                    st.session_state.raw_data = raw
-                    st.session_state.compiled_data = compiled
-                    st.session_state.dataset_name = "Large Dataset"
-                    st.session_state.data = load_from_dict(compiled)
-                    st.session_state.errors = validate_raw_data(compiled)
-                    st.session_state.asg = {}
-                    st.session_state.report = None
+                    apply_and_recompile_raw_data(raw, "Large Dataset")
                     st.rerun()
 
         with d_col4:
@@ -825,36 +836,44 @@ def main():
                 if os.path.exists(path):
                     with open(path, "r", encoding="utf-8") as f:
                         raw = json.load(f)
-                    compiled = compile_solver_data(raw)
-                    st.session_state.raw_data = raw
-                    st.session_state.compiled_data = compiled
-                    st.session_state.dataset_name = "Small Dataset"
-                    st.session_state.data = load_from_dict(compiled)
-                    st.session_state.errors = validate_raw_data(compiled)
-                    st.session_state.asg = {}
-                    st.session_state.report = None
+                    apply_and_recompile_raw_data(raw, "Small Dataset")
                     st.rerun()
 
-        # Upload JSON
-        uploaded_file = st.file_uploader("Upload Configuration JSON", type=["json"])
-        if uploaded_file is not None:
-            try:
-                raw_uploaded = json.load(uploaded_file)
-                compiled = compile_solver_data(raw_uploaded)
-                val_errs = validate_raw_data(compiled)
-                if val_errs:
-                    st.session_state.errors = val_errs
-                else:
-                    st.session_state.raw_data = raw_uploaded
-                    st.session_state.compiled_data = compiled
-                    st.session_state.dataset_name = "Uploaded Dataset"
-                    st.session_state.data = load_from_dict(compiled)
-                    st.session_state.errors = []
-                    st.session_state.asg = {}
-                    st.session_state.report = None
-                    st.success("Uploaded configuration verified and compiled successfully.")
-            except Exception as e:
-                st.error(f"Failed to parse uploaded JSON: {e}")
+        # Action bar: Upload & Download JSON + Save to Disk
+        act_col1, act_col2, act_col3 = st.columns([2, 1, 1])
+
+        with act_col1:
+            uploaded_file = st.file_uploader("Upload Configuration JSON", type=["json"], label_visibility="collapsed")
+            if uploaded_file is not None:
+                try:
+                    raw_uploaded = json.load(uploaded_file)
+                    ok, val_errs = apply_and_recompile_raw_data(raw_uploaded, "Uploaded Dataset")
+                    if ok:
+                        st.success("Uploaded configuration verified, split into 30-capacity lab sections, and loaded successfully.")
+                    else:
+                        st.error(f"Validation warnings: {'; '.join(val_errs)}")
+                except Exception as e:
+                    st.error(f"Failed to parse uploaded JSON: {e}")
+
+        with act_col2:
+            json_export_bytes = json.dumps(st.session_state.raw_data, indent=2).encode("utf-8")
+            st.download_button(
+                "📥 Download JSON Specification",
+                json_export_bytes,
+                "timetable_specification.json",
+                "application/json",
+                use_container_width=True,
+            )
+
+        with act_col3:
+            if st.button("💾 Save to Custom (Disk)", use_container_width=True):
+                custom_file_path = os.path.join(os.path.dirname(__file__), "data", "custom.json")
+                try:
+                    with open(custom_file_path, "w", encoding="utf-8") as f:
+                        json.dump(st.session_state.raw_data, f, indent=2)
+                    st.success("Custom dataset saved to server disk!")
+                except Exception as e:
+                    st.error(f"Failed to save to disk: {e}")
 
         # Active Dataset Summary Card
         if st.session_state.data:
@@ -863,7 +882,7 @@ def main():
             theory_classes = [c for c in d.classes.values() if getattr(c, "sub_index", None) is None]
 
             st.markdown(f"""
-            <div class="bento-card" style="border-left: 4px solid #1F6C9F;">
+            <div class="bento-card" style="border-left: 4px solid #1F6C9F; margin-top: 10px;">
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <div>
                         <span class="tag-badge tag-blue">Active Dataset: {html.escape(st.session_state.dataset_name)}</span>
@@ -877,18 +896,6 @@ def main():
                 </div>
             </div>
             """, unsafe_allow_html=True)
-
-        # Validation Display
-        if st.session_state.errors:
-            st.markdown('<div class="bento-card" style="border-left: 4px solid var(--accent-red-text);">', unsafe_allow_html=True)
-            st.markdown("<h4 style='color: var(--accent-red-text); margin-top:0;'>Validation Errors Detected</h4>", unsafe_allow_html=True)
-            for err in st.session_state.errors:
-                st.markdown(f"- {err}")
-            st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            st.markdown('<div class="bento-card" style="border-left: 4px solid var(--accent-green-text); padding: 14px 20px;">'
-                        '<span class="tag-badge tag-green">Validated</span> All entity references, 30-student section mappings, and relational schemas are valid.'
-                        '</div>', unsafe_allow_html=True)
 
         # Feasibility Pre-Check
         if not st.session_state.errors and st.session_state.data:
@@ -913,20 +920,32 @@ def main():
                     """, unsafe_allow_html=True)
 
         # ---------------------------------------------------------------------
-        # COMPLETE DATA TABLES DISPLAY & EDITING STUDIO
+        # ENTITY REGISTRY TABLES & INTERACTIVE FORM EDITORS
         # ---------------------------------------------------------------------
         st.markdown("---")
-        st.markdown("### Institutional Entity Registry (View & Inspect)")
+        st.markdown("### Institutional Entity Studio & Form Editors")
 
-        entity_tab_batches, entity_tab_faculty, entity_tab_rooms, entity_tab_subjects, entity_tab_edit = st.tabs([
-            "🏫 Batches & Cohorts",
+        entity_tab_batches, entity_tab_faculty, entity_tab_rooms, entity_tab_subjects, entity_tab_time = st.tabs([
+            "🏫 Academic Batches",
             "👨‍🏫 Faculty Members",
-            "🏢 Campus Rooms & Labs",
+            "🏢 Rooms & Venues",
             "📚 Courses & Subjects",
-            "✏️ Interactive JSON Editor",
+            "⏰ 9 AM - 5 PM Schedule",
         ])
 
-        # 1. Batches Table
+        # All registered courses list for selectboxes
+        all_subjects_in_raw = st.session_state.raw_data.get("subjects", [])
+        all_subj_codes = [s.get("code") or s.get("name") for s in all_subjects_in_raw]
+        theory_subj_codes = [s.get("code") or s.get("name") for s in all_subjects_in_raw if s.get("type") != "lab" and s.get("kind") != "lab"]
+        lab_subj_codes = [s.get("code") or s.get("name") for s in all_subjects_in_raw if s.get("type") == "lab" or s.get("kind") == "lab"]
+        if not theory_subj_codes:
+            theory_subj_codes = all_subj_codes
+        if not lab_subj_codes:
+            lab_subj_codes = all_subj_codes
+
+        # ---------------------------------------------------------------------
+        # 1. ACADEMIC BATCHES (TABLE + FORM EDITOR)
+        # ---------------------------------------------------------------------
         with entity_tab_batches:
             batches_list = st.session_state.raw_data.get("batches", [])
             if batches_list:
@@ -944,84 +963,299 @@ def main():
                         "Lunch Period": f"Period {b.get('lunch_period', 4)}",
                     })
                 st.dataframe(pd.DataFrame(batch_rows), use_container_width=True)
-            else:
-                cls_rows = []
-                for c in st.session_state.data.classes.values():
-                    cls_rows.append({
-                        "Class Name": c.name,
-                        "Strength": c.strength,
-                        "Subjects": ", ".join(c.subjects),
-                        "Lunch Period": f"Period {c.lunch_period}",
-                    })
-                st.dataframe(pd.DataFrame(cls_rows), use_container_width=True)
 
-        # 2. Faculty Table
-        with entity_tab_faculty:
-            fac_rows = []
-            for t in st.session_state.data.teachers.values():
-                t_subs = getattr(t, "subjects", None) or getattr(t, "qualified", [])
-                fac_rows.append({
-                    "Faculty Name": t.name,
-                    "Max Weekly Load": f"{t.max_load} Hours",
-                    "Qualified Courses": ", ".join(sorted(list(t_subs))),
-                    "Unavailable Slots Count": len(t.unavailable),
-                })
-            st.dataframe(pd.DataFrame(fac_rows), use_container_width=True)
+            with st.expander("➕ Configure / Add / Edit Academic Batch", expanded=True):
+                batch_options = ["+ Add New Batch"] + [b["name"] for b in batches_list]
+                selected_batch_mode = st.selectbox("Select Batch to Edit", batch_options, key="select_batch_edit_mode")
 
-        # 3. Rooms Table
-        with entity_tab_rooms:
-            room_rows = []
-            for r in st.session_state.data.rooms.values():
-                kind_fmt = r.kind.replace("_", " ").title()
-                room_rows.append({
-                    "Room Code": r.name,
-                    "Seating Capacity": r.capacity,
-                    "Facility Type": kind_fmt,
-                    "Multi-Section Capable": "Yes (Up to 3 sections)" if r.name == "LAB-36" or r.capacity >= 90 else "Standard",
-                })
-            st.dataframe(pd.DataFrame(room_rows), use_container_width=True)
+                selected_b_data = next((b for b in batches_list if b["name"] == selected_batch_mode), None)
 
-        # 4. Subjects Table
-        with entity_tab_subjects:
-            sub_rows = []
-            for s in st.session_state.data.subjects.values():
-                is_lab = (s.kind == "lab")
-                duration = 2 if is_lab else 1
-                sub_rows.append({
-                    "Course Code": s.code,
-                    "Course Title": s.name,
-                    "Weekly Hours": s.hours,
-                    "Course Type": s.kind.title(),
-                    "Session Block Duration": f"{duration} Period{'s' if duration > 1 else ''}",
-                })
-            st.dataframe(pd.DataFrame(sub_rows), use_container_width=True)
+                b_col1, b_col2, b_col3 = st.columns(3)
+                with b_col1:
+                    b_name = st.text_input("Batch Name / Code *", value=selected_b_data["name"] if selected_b_data else "CSE-A", key="form_batch_name")
+                with b_col2:
+                    sem_type = st.radio("Semester Type", ["Odd", "Even"], index=0 if (not selected_b_data or selected_b_data.get("sem_type") == "odd") else 1, horizontal=True, key="form_batch_semtype")
+                with b_col3:
+                    sem_options = [1, 3, 5, 7] if sem_type == "Odd" else [2, 4, 6, 8]
+                    cur_sem = selected_b_data.get("semester", sem_options[0]) if selected_b_data else sem_options[0]
+                    sem_val = st.selectbox("Semester", sem_options, index=sem_options.index(cur_sem) if cur_sem in sem_options else 0, key="form_batch_sem")
 
-        # 5. Interactive JSON Editor
-        with entity_tab_edit:
-            st.markdown("#### Direct JSON Configuration Editor")
-            st.markdown("Modify any cohort strength, room capacity, faculty assignment, or course definition, then click **Apply & Save Changes**.")
+                b_col4, b_col5, b_col6 = st.columns(3)
+                with b_col4:
+                    b_strength = st.number_input("Total Cohort Strength (Students) *", min_value=10, max_value=300, value=int(selected_b_data.get("strength", 90)) if selected_b_data else 90, step=10, key="form_batch_strength")
+                with b_col5:
+                    auto_split = st.checkbox("Auto-split into 30-capacity lab sections", value=selected_b_data.get("auto_split", True) if selected_b_data else True, key="form_batch_autosplit")
+                    if auto_split and b_strength > 30:
+                        k_calc = (b_strength + 29) // 30
+                        st.caption(f"⚡ Will divide into **{k_calc} sections** ({b_name}1, {b_name}2...) of ~30 for lab courses.")
+                with b_col6:
+                    b_lunch = st.selectbox("Designated Lunch Period", [3, 4, 5, 6], index=[3, 4, 5, 6].index(selected_b_data.get("lunch_period", 4)) if selected_b_data and selected_b_data.get("lunch_period") in [3, 4, 5, 6] else 1, key="form_batch_lunch")
 
-            json_str = json.dumps(st.session_state.raw_data, indent=2)
-            edited_json_str = st.text_area("Edit Configuration JSON", value=json_str, height=400)
+                cur_theory = [s for s in selected_b_data.get("subjects", []) if s in all_subj_codes] if selected_b_data else []
+                cur_labs = [s for s in selected_b_data.get("labs", []) if s in all_subj_codes] if selected_b_data else []
 
-            if st.button("Apply Changes & Recompile Dataset", use_container_width=True):
-                try:
-                    parsed_new = json.loads(edited_json_str)
-                    compiled_new = compile_solver_data(parsed_new)
-                    errs_new = validate_raw_data(compiled_new)
-                    if errs_new:
-                        st.error(f"Validation failed: {'; '.join(errs_new)}")
-                    else:
-                        st.session_state.raw_data = parsed_new
-                        st.session_state.compiled_data = compiled_new
-                        st.session_state.data = load_from_dict(compiled_new)
-                        st.session_state.errors = []
-                        st.session_state.asg = {}
-                        st.session_state.report = None
-                        st.success("Configuration successfully updated, compiled into 30-student sections, and validated!")
+                b_theory_subs = st.multiselect("Theory Courses (Conducted together for full batch)", all_subj_codes, default=cur_theory, key="form_batch_theory")
+                b_lab_subs = st.multiselect("Laboratory Courses (Conducted in 30-capacity sections)", all_subj_codes, default=cur_labs, key="form_batch_labs")
+
+                b_btn1, b_btn2 = st.columns([1, 1])
+                with b_btn1:
+                    if st.button("Save Batch", key="btn_save_batch_form", use_container_width=True):
+                        if not b_name.strip():
+                            st.error("Batch name cannot be empty.")
+                        else:
+                            new_entry = {
+                                "name": b_name.strip(),
+                                "semester": int(sem_val),
+                                "sem_type": sem_type.lower(),
+                                "strength": int(b_strength),
+                                "auto_split": bool(auto_split),
+                                "lunch_period": int(b_lunch),
+                                "subjects": b_theory_subs,
+                                "labs": b_lab_subs,
+                                "teacher_map": selected_b_data.get("teacher_map", {}) if selected_b_data else {},
+                            }
+                            # Update or append
+                            existing_idx = next((i for i, b in enumerate(batches_list) if b["name"] == (selected_b_data["name"] if selected_b_data else b_name.strip())), -1)
+                            if existing_idx >= 0:
+                                batches_list[existing_idx] = new_entry
+                            else:
+                                batches_list.append(new_entry)
+                            st.session_state.raw_data["batches"] = batches_list
+                            apply_and_recompile_raw_data(st.session_state.raw_data)
+                            st.success(f"Batch '{b_name.strip()}' saved successfully!")
+                            st.rerun()
+
+                with b_btn2:
+                    if selected_b_data and st.button("Delete Batch", key="btn_delete_batch_form", use_container_width=True):
+                        st.session_state.raw_data["batches"] = [b for b in batches_list if b["name"] != selected_b_data["name"]]
+                        apply_and_recompile_raw_data(st.session_state.raw_data)
+                        st.success(f"Batch '{selected_b_data['name']}' deleted.")
                         st.rerun()
-                except Exception as e:
-                    st.error(f"Invalid JSON syntax: {e}")
+
+        # ---------------------------------------------------------------------
+        # 2. FACULTY MEMBERS (TABLE + FORM EDITOR)
+        # ---------------------------------------------------------------------
+        with entity_tab_faculty:
+            teachers_list = st.session_state.raw_data.get("teachers", [])
+            fac_rows = []
+            for t in teachers_list:
+                t_subs = t.get("subjects", [])
+                fac_rows.append({
+                    "Faculty Name": t.get("name"),
+                    "Max Weekly Load": f"{t.get('max_load', 16)} Hours",
+                    "Qualified Courses": ", ".join(sorted(list(t_subs))),
+                    "Unavailable Slots Count": len(t.get("unavailable", [])),
+                })
+            if fac_rows:
+                st.dataframe(pd.DataFrame(fac_rows), use_container_width=True)
+
+            with st.expander("➕ Configure / Add / Edit Faculty Member", expanded=True):
+                teacher_options = ["+ Add New Faculty"] + [t["name"] for t in teachers_list]
+                selected_t_mode = st.selectbox("Select Faculty to Edit", teacher_options, key="select_teacher_edit_mode")
+                selected_t_data = next((t for t in teachers_list if t["name"] == selected_t_mode), None)
+
+                t_col1, t_col2 = st.columns([2, 1])
+                with t_col1:
+                    t_name = st.text_input("Faculty Name *", value=selected_t_data["name"] if selected_t_data else "Dr. New Faculty", key="form_teacher_name")
+                with t_col2:
+                    t_load = st.number_input("Max Weekly Load (Hours) *", min_value=1, max_value=40, value=int(selected_t_data.get("max_load", 16)) if selected_t_data else 16, key="form_teacher_load")
+
+                cur_t_subs = [s for s in selected_t_data.get("subjects", []) if s in all_subj_codes] if selected_t_data else []
+                t_qualified = st.multiselect("Qualified Courses *", all_subj_codes, default=cur_t_subs, key="form_teacher_qualified")
+
+                t_btn1, t_btn2 = st.columns([1, 1])
+                with t_btn1:
+                    if st.button("Save Faculty Member", key="btn_save_teacher_form", use_container_width=True):
+                        if not t_name.strip():
+                            st.error("Faculty name cannot be empty.")
+                        elif not t_qualified:
+                            st.error("Please assign at least one qualified course to this faculty.")
+                        else:
+                            new_entry = {
+                                "name": t_name.strip(),
+                                "max_load": int(t_load),
+                                "subjects": t_qualified,
+                                "unavailable": selected_t_data.get("unavailable", []) if selected_t_data else [],
+                                "avoid_periods": selected_t_data.get("avoid_periods", []) if selected_t_data else [],
+                            }
+                            existing_idx = next((i for i, t in enumerate(teachers_list) if t["name"] == (selected_t_data["name"] if selected_t_data else t_name.strip())), -1)
+                            if existing_idx >= 0:
+                                teachers_list[existing_idx] = new_entry
+                            else:
+                                teachers_list.append(new_entry)
+                            st.session_state.raw_data["teachers"] = teachers_list
+                            apply_and_recompile_raw_data(st.session_state.raw_data)
+                            st.success(f"Faculty '{t_name.strip()}' saved successfully!")
+                            st.rerun()
+
+                with t_btn2:
+                    if selected_t_data and st.button("Delete Faculty Member", key="btn_delete_teacher_form", use_container_width=True):
+                        st.session_state.raw_data["teachers"] = [t for t in teachers_list if t["name"] != selected_t_data["name"]]
+                        apply_and_recompile_raw_data(st.session_state.raw_data)
+                        st.success(f"Faculty '{selected_t_data['name']}' deleted.")
+                        st.rerun()
+
+        # ---------------------------------------------------------------------
+        # 3. ROOMS & VENUES (TABLE + FORM EDITOR)
+        # ---------------------------------------------------------------------
+        with entity_tab_rooms:
+            rooms_list = st.session_state.raw_data.get("rooms", [])
+            room_rows = []
+            for r in rooms_list:
+                r_kind = r.get("type") or r.get("kind", "classroom")
+                room_rows.append({
+                    "Room Code": r.get("name"),
+                    "Seating Capacity": r.get("capacity", 60),
+                    "Facility Type": r_kind.replace("_", " ").title(),
+                    "Multi-Section Capable": "Yes (Up to 3 sections)" if r.get("name") == "LAB-36" or int(r.get("capacity", 0)) >= 90 else "Standard",
+                })
+            if room_rows:
+                st.dataframe(pd.DataFrame(room_rows), use_container_width=True)
+
+            with st.expander("➕ Configure / Add / Edit Room / Venue", expanded=True):
+                room_options = ["+ Add New Room"] + [r["name"] for r in rooms_list]
+                selected_r_mode = st.selectbox("Select Room to Edit", room_options, key="select_room_edit_mode")
+                selected_r_data = next((r for r in rooms_list if r["name"] == selected_r_mode), None)
+
+                r_col1, r_col2, r_col3 = st.columns(3)
+                with r_col1:
+                    r_name = st.text_input("Room Identifier / Code *", value=selected_r_data["name"] if selected_r_data else "LT-10", key="form_room_name")
+                with r_col2:
+                    r_cap = st.number_input("Seating Capacity *", min_value=15, max_value=300, value=int(selected_r_data.get("capacity", 60)) if selected_r_data else 60, step=5, key="form_room_capacity")
+                with r_col3:
+                    type_options = ["classroom", "lecture_theatre", "laboratory", "tutorial_room"]
+                    type_labels = ["Classroom", "Lecture Theatre", "Laboratory", "Tutorial Room"]
+                    cur_kind = selected_r_data.get("type") or selected_r_data.get("kind", "classroom") if selected_r_data else "classroom"
+                    r_kind = st.selectbox("Facility Type", type_options, format_func=lambda x: x.replace("_", " ").title(), index=type_options.index(cur_kind) if cur_kind in type_options else 0, key="form_room_type")
+
+                r_btn1, r_btn2 = st.columns([1, 1])
+                with r_btn1:
+                    if st.button("Save Room", key="btn_save_room_form", use_container_width=True):
+                        if not r_name.strip():
+                            st.error("Room identifier cannot be empty.")
+                        else:
+                            new_entry = {
+                                "name": r_name.strip(),
+                                "capacity": int(r_cap),
+                                "type": r_kind,
+                                "kind": r_kind,
+                            }
+                            existing_idx = next((i for i, r in enumerate(rooms_list) if r["name"] == (selected_r_data["name"] if selected_r_data else r_name.strip())), -1)
+                            if existing_idx >= 0:
+                                rooms_list[existing_idx] = new_entry
+                            else:
+                                rooms_list.append(new_entry)
+                            st.session_state.raw_data["rooms"] = rooms_list
+                            apply_and_recompile_raw_data(st.session_state.raw_data)
+                            st.success(f"Room '{r_name.strip()}' saved successfully!")
+                            st.rerun()
+
+                with r_btn2:
+                    if selected_r_data and st.button("Delete Room", key="btn_delete_room_form", use_container_width=True):
+                        st.session_state.raw_data["rooms"] = [r for r in rooms_list if r["name"] != selected_r_data["name"]]
+                        apply_and_recompile_raw_data(st.session_state.raw_data)
+                        st.success(f"Room '{selected_r_data['name']}' deleted.")
+                        st.rerun()
+
+        # ---------------------------------------------------------------------
+        # 4. COURSES & SUBJECTS (TABLE + FORM EDITOR)
+        # ---------------------------------------------------------------------
+        with entity_tab_subjects:
+            subjects_list = st.session_state.raw_data.get("subjects", [])
+            sub_rows = []
+            for s in subjects_list:
+                s_code = s.get("code") or s.get("name")
+                s_title = s.get("name") if s.get("code") else s_code
+                s_type = s.get("type") or s.get("kind", "theory")
+                is_lab = (s_type == "lab")
+                sub_rows.append({
+                    "Course Code": s_code,
+                    "Course Title": s_title,
+                    "Weekly Hours": s.get("hours", 3),
+                    "Course Type": s_type.title(),
+                    "Preferred Venue": (s.get("room_type") or ("laboratory" if is_lab else "classroom")).replace("_", " ").title(),
+                    "Duration": f"{2 if is_lab else 1} Period{'s' if is_lab else ''}",
+                })
+            if sub_rows:
+                st.dataframe(pd.DataFrame(sub_rows), use_container_width=True)
+
+            with st.expander("➕ Configure / Add / Edit Course / Subject", expanded=True):
+                sub_options = ["+ Add New Course"] + [s.get("code") or s.get("name") for s in subjects_list]
+                selected_s_mode = st.selectbox("Select Course to Edit", sub_options, key="select_subject_edit_mode")
+                selected_s_data = next((s for s in subjects_list if (s.get("code") or s.get("name")) == selected_s_mode), None)
+
+                s_col1, s_col2 = st.columns([1, 2])
+                with s_col1:
+                    s_code_val = st.text_input("Course Code *", value=selected_s_data.get("code") or selected_s_data.get("name") if selected_s_data else "CST-301", key="form_sub_code")
+                with s_col2:
+                    s_name_val = st.text_input("Course Title / Name *", value=selected_s_data.get("name", "Operating Systems") if selected_s_data else "Operating Systems", key="form_sub_name")
+
+                s_col3, s_col4, s_col5 = st.columns(3)
+                with s_col3:
+                    s_hours = st.number_input("Weekly Contact Hours *", min_value=1, max_value=10, value=int(selected_s_data.get("hours", 3)) if selected_s_data else 3, key="form_sub_hours")
+                with s_col4:
+                    cur_kind = selected_s_data.get("type") or selected_s_data.get("kind", "theory") if selected_s_data else "theory"
+                    s_format = st.radio("Delivery Format", ["Theory", "Lab"], index=0 if cur_kind != "lab" else 1, horizontal=True, key="form_sub_format")
+                with s_col5:
+                    venue_options = ["laboratory", "classroom", "tutorial_room", "lecture_theatre"]
+                    default_venue = "laboratory" if s_format == "Lab" else "classroom"
+                    cur_venue = selected_s_data.get("room_type", default_venue) if selected_s_data else default_venue
+                    s_venue = st.selectbox("Preferred Room Type", venue_options, format_func=lambda x: x.replace("_", " ").title(), index=venue_options.index(cur_venue) if cur_venue in venue_options else 0, key="form_sub_venue")
+
+                s_btn1, s_btn2 = st.columns([1, 1])
+                with s_btn1:
+                    if st.button("Save Course", key="btn_save_sub_form", use_container_width=True):
+                        if not s_code_val.strip():
+                            st.error("Course code cannot be empty.")
+                        else:
+                            new_entry = {
+                                "code": s_code_val.strip(),
+                                "name": s_name_val.strip(),
+                                "hours": int(s_hours),
+                                "type": "lab" if s_format == "Lab" else "theory",
+                                "kind": "lab" if s_format == "Lab" else "theory",
+                                "room_type": s_venue,
+                            }
+                            existing_idx = next((i for i, s in enumerate(subjects_list) if (s.get("code") or s.get("name")) == (selected_s_data.get("code") or selected_s_data.get("name") if selected_s_data else s_code_val.strip())), -1)
+                            if existing_idx >= 0:
+                                subjects_list[existing_idx] = new_entry
+                            else:
+                                subjects_list.append(new_entry)
+                            st.session_state.raw_data["subjects"] = subjects_list
+                            apply_and_recompile_raw_data(st.session_state.raw_data)
+                            st.success(f"Course '{s_code_val.strip()}' saved successfully!")
+                            st.rerun()
+
+                with s_btn2:
+                    if selected_s_data and st.button("Delete Course", key="btn_delete_sub_form", use_container_width=True):
+                        target_code = selected_s_data.get("code") or selected_s_data.get("name")
+                        st.session_state.raw_data["subjects"] = [s for s in subjects_list if (s.get("code") or s.get("name")) != target_code]
+                        apply_and_recompile_raw_data(st.session_state.raw_data)
+                        st.success(f"Course '{target_code}' deleted.")
+                        st.rerun()
+
+        # ---------------------------------------------------------------------
+        # 5. 9:00 AM - 5:00 PM TIME & PERIOD STRUCTURE
+        # ---------------------------------------------------------------------
+        with entity_tab_time:
+            time_cfg = st.session_state.raw_data.get("time", {})
+            st.markdown("#### Academic Schedule & Period Configuration (9:00 AM – 5:00 PM)")
+
+            t_col1, t_col2 = st.columns(2)
+            with t_col1:
+                p_count = st.number_input("Periods per Day", min_value=5, max_value=10, value=int(time_cfg.get("periods_per_day", 7)), key="form_time_periods")
+            with t_col2:
+                break_choices = list(range(1, int(p_count) + 1))
+                cur_breaks = [b for b in time_cfg.get("break_periods", [2, 5]) if b in break_choices]
+                sel_breaks = st.multiselect("Designate Break Periods", break_choices, default=cur_breaks, format_func=lambda x: f"Period {x}", key="form_time_breaks")
+
+            if st.button("Apply Time Settings", key="btn_save_time_cfg", use_container_width=True):
+                time_cfg["periods_per_day"] = int(p_count)
+                time_cfg["break_periods"] = sel_breaks
+                st.session_state.raw_data["time"] = time_cfg
+                apply_and_recompile_raw_data(st.session_state.raw_data)
+                st.success("Time structure updated successfully!")
+                st.rerun()
 
     # =========================================================================
     # TAB 2: ALGORITHMIC SEARCH
@@ -1125,14 +1359,12 @@ def main():
                 view_kind = st.selectbox("Perspective", ["class", "teacher", "room"], key="sb_view_perspective")
             with vc2:
                 if view_kind == "class":
-                    # Build clean grouped options: parent cohorts first, then individual lab sub-sections
                     parent_batches = set()
                     for c in data.classes.values():
                         p = getattr(c, "parent_batch", None) or getattr(c, "parent_class", None) or c.name
                         parent_batches.add(p)
 
                     options = [f"{p} (Unified Cohort & All Sections)" for p in sorted(parent_batches)]
-                    # Also include specific lab sub-sections
                     sub_sections = [c.name for c in data.classes.values() if getattr(c, "sub_index", None) is not None]
                     if sub_sections:
                         options.extend([f"{s} (Specific Lab Section)" for s in sorted(sub_sections)])
@@ -1217,7 +1449,6 @@ def main():
                 key="manual_edit_sid_selector",
             )
 
-            # Current assignment of selected session
             target_sess = next(s for s in sessions if s.sid == selected_sid)
             cur_assignment = asg.get(selected_sid)
             cur_desc = f"{data.days[cur_assignment[0]]} P{cur_assignment[1]+1} in {cur_assignment[2]}" if cur_assignment else "Unassigned"
@@ -1256,11 +1487,9 @@ def main():
             btn_col1, btn_col2 = st.columns([1, 1])
             with btn_col1:
                 if st.button("Apply Move", use_container_width=True):
-                    # Save old state for undo
                     st.session_state.history.append(dict(asg))
                     st.session_state.asg = trial_asg
                     st.session_state.report = after_rep
-                    # Record log
                     new_desc = f"{data.days[edit_day]} P{edit_period+1} in {edit_room}"
                     st.session_state.move_log.append(f"Moved {target_sess.subject} ({target_sess.cls}): {cur_desc} → {new_desc}")
                     st.success(f"Move committed successfully! {target_sess.subject} is now scheduled at {new_desc}. All grids in Tab 3 and exports in Tab 5 are updated.")
