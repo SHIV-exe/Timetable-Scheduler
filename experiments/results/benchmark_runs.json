@@ -697,5 +697,237 @@
         "Output Summary": "204 Clashes \u00b7 292448 iters \u00b7 2.0s"
       }
     ]
+  },
+  "small_dataset_1793445085": {
+    "dataset": "Small Dataset",
+    "display_name": "Small Dataset (45 Sessions, 3 Classes)",
+    "sessions_count": 45,
+    "classes_count": 3,
+    "rooms_count": 4,
+    "teachers_count": 6,
+    "timestamp": "2026-10-31 16:41:25",
+    "records": [
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Min-Conflicts",
+        "Success": false,
+        "Success Rate": "0/1",
+        "Avg Time (s)": 0.005,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 1,
+        "Avg Hard Violations": 2,
+        "Avg Soft Penalty (valid runs)": 62,
+        "Hard Breakdown": {
+          "H3": 2
+        },
+        "Soft Breakdown": {
+          "S4": 11,
+          "S1": 24,
+          "S2": 27
+        },
+        "Output Summary": "2 Clashes \u00b7 1 iters \u00b7 0.005s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "BT heuristics",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.02,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 53,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 77,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 13,
+          "S1": 20,
+          "S2": 42,
+          "S5": 2
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 53 iters \u00b7 0.02s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Hill Climbing",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.293,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 2023,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 3,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 3
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 2023 iters \u00b7 0.293s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Simulated Annealing",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 1.264,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 9720,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 1,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 1
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 9720 iters \u00b7 1.264s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Hybrid (BT + SA)",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 1.295,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 9818,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 2,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 2
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 9818 iters \u00b7 1.295s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "BT baseline",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.001,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 120,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 54,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 10,
+          "S1": 20,
+          "S2": 24
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 120 iters \u00b7 0.001s"
+      }
+    ]
+  },
+  "small_dataset_1793445113": {
+    "dataset": "Small Dataset",
+    "display_name": "Small Dataset (45 Sessions, 3 Classes)",
+    "sessions_count": 45,
+    "classes_count": 3,
+    "rooms_count": 4,
+    "teachers_count": 6,
+    "timestamp": "2026-10-31 16:41:53",
+    "records": [
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Min-Conflicts",
+        "Success": false,
+        "Success Rate": "0/1",
+        "Avg Time (s)": 0.004,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 1,
+        "Avg Hard Violations": 2,
+        "Avg Soft Penalty (valid runs)": 62,
+        "Hard Breakdown": {
+          "H3": 2
+        },
+        "Soft Breakdown": {
+          "S4": 11,
+          "S1": 24,
+          "S2": 27
+        },
+        "Output Summary": "2 Clashes \u00b7 1 iters \u00b7 0.004s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "BT heuristics",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.022,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 53,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 77,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 13,
+          "S1": 20,
+          "S2": 42,
+          "S5": 2
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 53 iters \u00b7 0.022s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Hill Climbing",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.252,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 2023,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 3,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 3
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 2023 iters \u00b7 0.252s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Simulated Annealing",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 1.19,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 9720,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 1,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 1
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 9720 iters \u00b7 1.19s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "Hybrid (BT + SA)",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 1.228,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 9818,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 2,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 2
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 9818 iters \u00b7 1.228s"
+      },
+      {
+        "Dataset": "Small Dataset",
+        "Method": "BT baseline",
+        "Success": true,
+        "Success Rate": "1/1",
+        "Avg Time (s)": 0.001,
+        "Std Time (s)": 0.0,
+        "Avg Work (nodes/iters)": 120,
+        "Avg Hard Violations": 0,
+        "Avg Soft Penalty (valid runs)": 54,
+        "Hard Breakdown": {},
+        "Soft Breakdown": {
+          "S4": 10,
+          "S1": 20,
+          "S2": 24
+        },
+        "Output Summary": "Clash-Free (0 Clashes) \u00b7 120 iters \u00b7 0.001s"
+      }
+    ]
   }
 }
